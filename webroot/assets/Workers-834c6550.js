@@ -1,0 +1,1 @@
+import{_ as e}from"./_plugin-vue_export-helper-c27b6911.js";import{ae as r,af as t}from"./index-54123a3f.js";const o={};function c(n,a){return r(),t("h1",null,"Työntekijät")}const f=e(o,[["render",c]]);export{f as default};

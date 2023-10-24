@@ -41,6 +41,7 @@ class UsersController extends AppController
                 'email' => $this->authenticatedUser->email,
                 'first_name' => $this->authenticatedUser->first_name,
                 'last_name' => $this->authenticatedUser->last_name,
+                'joined_at' => $this->authenticatedUser->created,
             ];
         } else{
             $message = 'Invalid auth token';
