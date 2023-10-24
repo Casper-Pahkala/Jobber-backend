@@ -1,0 +1,1 @@
+import{_ as e}from"./_plugin-vue_export-helper-c27b6911.js";import{aA as t,aB as r}from"./index-4ac1f01f.js";const a={};function c(o,n){return t(),r("h1",null,"Chat")}const f=e(a,[["render",c]]);export{f as default};
