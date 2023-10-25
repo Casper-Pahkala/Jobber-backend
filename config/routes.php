@@ -56,6 +56,11 @@ return static function (RouteBuilder $routes) {
             'jobId' => '[A-Za-z0-9]+',
             'filename' => '[A-Za-z0-9_]+'
         ]);
+
+        $builder->connect('/profile-image/:userId', ['controller' => 'App', 'action' => 'profileImage'], [
+            'pass' => ['userId'],
+            'userId' => '[A-Za-z0-9]+',
+        ]);
         $builder->fallbacks();
     });
 
@@ -72,6 +77,8 @@ return static function (RouteBuilder $routes) {
         $routes->connect('/users/register', ['controller' => 'Users', 'action' => 'register']);
         $routes->connect('/users/login', ['controller' => 'Users', 'action' => 'login']);
         $routes->connect('/users/my-messages', ['controller' => 'Users', 'action' => 'myMessages']);
+        $routes->connect('/users/update-profile-image', ['controller' => 'Users', 'action' => 'updateProfileImage']);
+
         $routes->connect('/messages/*', ['controller' => 'Messages', 'action' => 'index']);
         $routes->connect('/messages/send-message', ['controller' => 'Messages', 'action' => 'sendMessage']);
 

@@ -8,6 +8,7 @@ use Firebase\JWT\Key;
 use Cake\Core\Configure;
 use Cake\Http\Cookie\Cookie;
 use Cake\I18n\FrozenTime;
+use App\Controller\FireBaseController;
 
 class UsersController extends AppController
 {
@@ -18,7 +19,7 @@ class UsersController extends AppController
     public function initialize(): void
     {
         parent::initialize();
-        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage']);
     }
 
     public function index() {
@@ -42,6 +43,7 @@ class UsersController extends AppController
                 'first_name' => $this->authenticatedUser->first_name,
                 'last_name' => $this->authenticatedUser->last_name,
                 'joined_at' => $this->authenticatedUser->created,
+                'has_image' => $this->authenticatedUser->profile_image != null,
             ];
         } else{
             $message = 'Invalid auth token';
@@ -189,6 +191,7 @@ class UsersController extends AppController
             ->toArray();
 
             $jobHashedIds = [];
+            $userHashedIds = [];
             $data = [];
             foreach($messages as $message) {
                 if (!in_array($message['job_hashed_id'], $jobHashedIds)) {
@@ -198,27 +201,50 @@ class UsersController extends AppController
                 if (!isset($data[$message['job_hashed_id']])) {
                     $data[$message['job_hashed_id']] = $message;
                 }
+
+                if (!in_array($message['other_user_id'], $jobHashedIds)) {
+                    $userHashedIds[] = $message['other_user_id'];
+                }
             }
 
             $this->loadModel('Jobs');
-            $jobs = $this->Jobs->find()
-                ->select([
-                    'title',
-                    'description',
-                    'date',
-                    'estimated_time',
-                    'full_salary',
-                    'Jobs.hashed_id',
-                    'Users.first_name',
-                    'Users.last_name'
-                ])
-                ->where([
-                    'Jobs.hashed_id IN ' => $jobHashedIds
-                ])
-                ->contain([
-                    'Users'
-                ])
-                ->toArray();
+            $jobs = [];
+            if (!empty($jobHashedIds)) {
+                $jobs = $this->Jobs->find()
+                    ->select([
+                        'title',
+                        'description',
+                        'date',
+                        'estimated_time',
+                        'full_salary',
+                        'Jobs.hashed_id',
+                        'Users.first_name',
+                        'Users.last_name'
+                    ])
+                    ->where([
+                        'Jobs.hashed_id IN ' => $jobHashedIds
+                    ])
+                    ->contain([
+                        'Users'
+                    ])
+                    ->toArray();
+            }
+
+            $this->loadModel('Users');
+            $users = [];
+            if (!empty($userHashedIds)) {
+                $users = $this->Users->find()
+                    ->select([
+                        'first_name',
+                        'last_name',
+                        'hashed_id',
+                        'has_image' => 'CASE WHEN profile_image IS NULL THEN FALSE ELSE TRUE END'
+                    ])
+                    ->where([
+                        'hashed_id IN ' => $userHashedIds
+                    ])
+                    ->toArray();
+            }
 
             $messages = array_values($data);
             
@@ -226,6 +252,11 @@ class UsersController extends AppController
                 foreach($jobs as $job) {
                     if ($job['hashed_id'] == $message['job_hashed_id']) {
                         $message['job'] = $job;
+                    }
+                }
+                foreach($users as $user) {
+                    if ($user['hashed_id'] == $message['other_user_id']) {
+                        $message['user'] = $user;
                     }
                 }
             }
@@ -240,5 +271,91 @@ class UsersController extends AppController
 
         $this->set(compact('message', 'status', 'messages'));
         $this->set('_serialize', ['message', 'status', 'messages']);
+    }
+
+    public function updateProfileImage() {
+        $message = 'Error occurred';
+        $status = 'error';
+        if ($this->request->is('post')) {
+            $this->loadModel('Users');
+            $data = $this->request->getData();
+            if (!$this->authenticatedUser) {
+                $status = 'error';
+                $message = 'Authentication failed';
+                $this->set(compact('message', 'status'));
+                $this->set('_serialize', ['message', 'status']);
+                return;
+            }
+            $targetPath = ROOT . DS . 'tmp' . DS . 'uploads' . DS;
+            $uploadedImage = $data['image'];
+            if ($uploadedImage->getError() === UPLOAD_ERR_OK) {
+                $filenameWithExtension = $uploadedImage->getClientFilename();
+                $fileInfo = pathinfo($filenameWithExtension);
+                $fileExtension = $fileInfo['extension'];
+
+                $targetFile = $targetPath . 'image_' . $this->authenticatedUser->hashed_id . '.' . $fileExtension;
+                $targetFileLow = $targetPath . 'image_' . $this->authenticatedUser->hashed_id . '_low.' . $fileExtension;
+
+                $firebaseController = new FireBaseController();
+                $uploadedImage->moveTo($targetFile);
+                $originalImage = null;
+                switch ($fileExtension) {
+                    case 'jpg':
+                        $originalImage = imagecreatefromjpeg($targetFile);
+                        break;
+                    case 'png':
+                        $originalImage = imagecreatefrompng($targetFile);
+                        break;
+                    case 'jpeg':
+                        $originalImage = imagecreatefromjpeg($targetFile);
+                        break;
+                }
+                if ($originalImage) {
+                    $width = imagesx($originalImage);
+                    $height = imagesy($originalImage);
+                    $newHeight = 1080;
+                    $newWidth = 1080;
+                    $newImage = imagecreatetruecolor((int)$newWidth, (int)$newHeight);
+                    imagecopyresampled($newImage, $originalImage, 0, 0, 0, 0, (int)$newWidth, (int)$newHeight, $width, $height);
+                    imagejpeg($newImage, $targetFile, 80);
+
+                    $newHeight = 180;
+                    $newWidth = 180;
+                    $newImageLow = imagecreatetruecolor((int)$newWidth, (int)$newHeight);
+                    imagecopyresampled($newImageLow, $originalImage, 0, 0, 0, 0, (int)$newWidth, (int)$newHeight, $width, $height);
+                    imagejpeg($newImageLow, $targetFileLow, 80);
+                }
+                $id = $this->generateRandomNumber(10);
+                $uploaded = $firebaseController->uploadImage('profile_images/' . $this->authenticatedUser->hashed_id . '/' . $id . '.' . $fileExtension, $targetFile);
+                $uploadedLow = $firebaseController->uploadImage('profile_images/' . $this->authenticatedUser->hashed_id . '/' .  $id . '_low.' . $fileExtension, $targetFileLow);
+                if ($uploaded && $uploadedLow) {
+                    $this->authenticatedUser->profile_image = $id;
+                    if($this->Users->save($this->authenticatedUser)) {
+                        $status = 'success';
+                        $message = 'Profile image updated';
+                    } else {
+                        $message = 'Error occurred when updating user info';
+                    }
+                } else {
+                    // Error handling if the file cannot be moved or uploaded to Firebase
+                    $message = 'Error occurred when uploading image ' . $id;
+                }
+            } else {
+                $message = $uploadedImage->getError();
+            }
+        }
+
+        $this->set(compact('message', 'status'));
+        $this->set('_serialize', ['message', 'status']);
+    }
+    private function generateRandomNumber($length) {
+        if ($length <= 0) {
+            return 0; // If length is 0 or negative, return 0.
+        }
+    
+        $min = pow(10, $length - 1); // Minimum value for the specified length (e.g., for 12 digits, it's 100000000000).
+        $max = pow(10, $length) - 1; // Maximum value for the specified length (e.g., for 12 digits, it's 999999999999).
+    
+        return rand((int)$min, (int)$max);
     }
 }

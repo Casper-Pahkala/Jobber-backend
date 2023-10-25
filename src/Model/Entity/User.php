@@ -40,6 +40,7 @@ class User extends Entity
         'password' => true,
         'first_name' => true,
         'last_name' => true,
+        'profile_image'=> true,
         'provider' => true,
         'identifier' => true,
         'created' => true,

@@ -48,7 +48,9 @@ class MessagesController extends AppController
                     'Jobs.hashed_id' => $jobId
                 ])
                 ->contain([
-                    'Users'
+                    'Users' => function ($q) {
+                        return $q->find('WithHasImage'); // Use the findWithHasImage function to include 'has_image'
+                    }
                 ])
                 ->first();
             $status = 'success';

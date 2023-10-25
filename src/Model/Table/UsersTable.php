@@ -95,6 +95,11 @@ class UsersTable extends Table
             ->scalar('last_name')
             ->maxLength('last_name', 255)
             ->allowEmptyString('last_name');
+        
+        $validator
+            ->scalar('profile_image')
+            ->maxLength('profile_image', 255)
+            ->allowEmptyString('profile_image');
 
         $validator
             ->scalar('provider')
@@ -129,5 +134,16 @@ class UsersTable extends Table
         $rules->add($rules->isUnique(['email']), ['errorField' => 'email']);
 
         return $rules;
+    }
+
+    public function findWithHasImage($query)
+    {
+        return $query->select([
+            'id',
+            'first_name',
+            'last_name',
+            'hashed_id',
+            '   has_image' => 'CASE WHEN Users.profile_image IS NULL THEN 0 ELSE 1 END'
+        ]);
     }
 }

@@ -48,7 +48,7 @@ class AppController extends Controller
         $this->loadComponent('RequestHandler');
         $this->loadComponent('Flash');
         $this->loadComponent('Authentication.Authentication');
-        $this->Authentication->addUnauthenticatedActions(['login', 'jobImage']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'jobImage', 'profileImage']);
 
         $user = $this->Authentication->getIdentity();
         $token = '';
@@ -100,6 +100,49 @@ class AppController extends Controller
                 // Set the response body with the default image data
                 $this->response = $this->response->withBody(new \Cake\Http\CallbackStream(function () use ($defaultImageData) {
                     echo $defaultImageData;
+                }));
+            } else {
+                // Set the appropriate content type
+                $this->response = $this->response->withType('image/jpeg');
+    
+                // Get the image data from the stream
+                $imageData = $imageStream->getContents();
+    
+                // Set the response body with the image data
+                $this->response = $this->response->withBody(new \Cake\Http\CallbackStream(function () use ($imageData) {
+                    echo $imageData;
+                }));
+            }
+            
+            return $this->response;
+        }
+    }
+
+    public function profileImage($userId) {
+        if ($this->request->is('get')) {
+            $firebaseController = new FireBaseController();
+            $this->loadModel('Users');
+            $user = $this->Users->find()
+                ->where([
+                    'hashed_id' => $userId
+                ])
+                ->first();
+            
+            if (empty($user) || !$user) {
+                $message = 'User not found';
+                $status = 'error';
+                $this->set(compact('message', 'status'));
+                $this->set('_serialize', ['message', 'status']);
+                return;
+            }
+            $imageStream = $firebaseController->downloadImage("profile_images/$userId", $user->profile_image);
+            if (!$imageStream) {
+                // Set the appropriate content type for PNG
+                // $this->response = $this->response->withType('image/jpeg');
+    
+                // Set the response body with the default image data
+                $this->response = $this->response->withBody(new \Cake\Http\CallbackStream(function () {
+                    echo 'No profile image';
                 }));
             } else {
                 // Set the appropriate content type

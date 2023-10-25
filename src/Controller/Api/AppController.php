@@ -56,9 +56,31 @@ class AppController extends Controller
                 ])
                 ->order([
                     'Jobs.created_at'=> 'DESC'
+                ]);
+
+            $jobsCount = $this->Jobs->find()
+                ->contain([
+                    'Users' => [
+                        'fields' => [
+                            'Users.hashed_id',
+                            'first_name',
+                            'last_name'
+                        ]
+                    ]
                 ])
-                ->toArray();
+                ->count();
+
+            
+            $page = $this->request->getQuery('page',1);
+            $limit = $this->request->getQuery('limit',5);
+            // $jobs = $jobs->paginate($page, $limit);
+            $jobs->limit($limit);
+
+            $jobs->offset(($page - 1) * $limit);
             $responseData['jobs'] = $jobs;
+            $responseData['page'] = $page;
+            $responseData['limit'] = $limit;
+            $responseData['totalCount'] = $jobsCount;
             $responseData['error'] = false;
         }
         return $this->response->withType('application/json')->withStringBody(json_encode($responseData));
@@ -168,7 +190,7 @@ class AppController extends Controller
         $this->set('_serialize', ['message', 'status']);
     }
 
-    private function resize_image($src, $w, $h, $crop=FALSE) {
+    function resize_image($src, $w, $h, $crop=FALSE) {
         $width = imagesx($src);
         $height = imagesy($src);
 
