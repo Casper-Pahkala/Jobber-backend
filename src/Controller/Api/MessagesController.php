@@ -11,33 +11,58 @@ class MessagesController extends AppController
         $this->Authentication->addUnauthenticatedActions(['sendMessage', 'getMessages', 'index']);
     }
 
-    public function index($jobId) {
+    public function index($jobId, $userId) {
         $message = 'Invalid auth token';
         $status = 'error';
         $messages = [];
         $job = null;
+        $user = [];
         if (!$this->authenticatedUser) {
             $this->set(compact('message', 'status'));
             $this->set('_serialize', ['message', 'status']);
             return;
         }
 
+        // dd(1);
         if ($this->request->is('get')) {
             $this->loadModel('Messages');
             $this->loadModel('Jobs');
-            $senderId = $this->authenticatedUser->id;
+            $this->loadModel('Users');
+            $requestUserId = $this->authenticatedUser->id;
+
+            $otherUser = $this->Users->find()
+                ->where([
+                    'hashed_id' => $userId
+                ])
+                ->first();
+            
+            if (empty($otherUser)) {
+                $message = 'No user found';
+                $this->set(compact('message', 'status'));
+                $this->set('_serialize', ['message', 'status']);
+                return;
+            }
+            $user['id'] = $otherUser->hashed_id;
+            $user['name'] = $otherUser->first_name . ' ' . $otherUser->last_name;
+            $user['has_profile_image'] = $otherUser->profile_image != null;
             $messages = $this->Messages->find()
                 ->select([
                     'id',
                     'message',
-                    'received' => "CASE WHEN Messages.sender_id = $senderId THEN FALSE ELSE TRUE END",
+                    'received' => "CASE WHEN Messages.sender_id = $requestUserId THEN FALSE ELSE TRUE END",
                     'time' => 'created_at'
                 ])
                 ->where([
                     'job_hashed_id'=> $jobId,
                     'OR' => [
-                        'sender_id' => $senderId,
-                        'receiver_id' => $senderId
+                        'sender_id' => $requestUserId,
+                        'receiver_id' => $requestUserId
+                    ],
+                    [
+                        'OR' => [
+                            'sender_id' => $otherUser->id,
+                            'receiver_id' => $otherUser->id
+                        ],
                     ]
                 ])
                 ->enableHydration(false)
@@ -48,9 +73,10 @@ class MessagesController extends AppController
                     'Jobs.hashed_id' => $jobId
                 ])
                 ->contain([
-                    'Users' => function ($q) {
-                        return $q->find('WithHasImage'); // Use the findWithHasImage function to include 'has_image'
-                    }
+                    'Users'
+                    //  => function ($q) {
+                    //     return $q->find('WithHasImage'); // Use the findWithHasImage function to include 'has_image'
+                    // }
                 ])
                 ->first();
             $status = 'success';
@@ -59,8 +85,9 @@ class MessagesController extends AppController
             $message = 'Invalid request type';
         }
 
-        $this->set(compact('message', 'status', 'messages', 'job'));
-        $this->set('_serialize', ['message', 'status', 'messages', 'job']);
+
+        $this->set(compact('message', 'status', 'messages', 'job', 'user'));
+        $this->set('_serialize', ['message', 'status', 'messages', 'job', 'user']);
     }
 
     public function sendMessage() {
@@ -127,7 +154,8 @@ class MessagesController extends AppController
                     ];
 
                     if(!$this->sendMessageToWebSocket($websocketPayload)) {
-                        
+                        $message = 'Websocket connection failed';
+                        $status = 'error';
                     }
                 } else {
                     $message = 'Failed to send the message';
@@ -157,8 +185,12 @@ class MessagesController extends AppController
 
     private function sendMessageToWebSocket($data) {
         try {
-            $client = new WebSocketClient('ws://165.227.145.175:8000?token=' . Configure::read('Websocket.AdminToken'));
+            $url = Configure::read('Websocket.url');
+            $port = Configure::read('Websocket.port');
+            $adminToken = Configure::read('Websocket.AdminToken');
+            $client = new WebSocketClient("$url:$port?token=$adminToken");
             $client->send(json_encode($data));
+            return true;
         } catch (\Exception $e) {
             return false;
         }

@@ -8,6 +8,7 @@ use Firebase\JWT\JWT;
 use Cake\Core\Configure;
 use Firebase\JWT\Key;
 use App\Controller\FireBaseController;
+use Cake\Utility\Security;
 class AppController extends Controller
 {
     protected $authenticatedUser = null;
@@ -89,6 +90,7 @@ class AppController extends Controller
     public function addJob() {
         $message = 'Data validation error';
         $status = 'error';
+        $canAddJob = false;
         if ($this->request->is('post')) {
             $this->loadModel('Jobs');
             $data = $this->request->getData();
@@ -101,90 +103,106 @@ class AppController extends Controller
             }
 
             if ($this->validateJobData($data)) {
-                $uploadedImages = $this->request->getUploadedFiles()['image'];
-                $saveData = [
-                    'user_id' => $this->authenticatedUser->id,
-                    'title' => trim($data['title']),
-                    'description' => trim($data['description']),
-                    'address' => trim($data['address']),
-                    'lat' => 0,
-                    'lng' => 0,
-                    'date' => new FrozenTime($data['date']),
-                    'estimated_time' => $data['duration'],
-                    'full_salary' => $data['full_salary'],
-                    'pictures' => is_array($uploadedImages) ? count($uploadedImages) : 0,
-                ];
-                $job = $this->Jobs->newEntity($saveData);
-                if ($this->Jobs->save($job)) {
-                    $status = 'error'; // Default status
-                    $message = 'Error occurred when uploading image(s)';
+                $hashedId = Security::hash(uniqid('', true), 'sha256', true);
 
-                    if (!empty($uploadedImages)) {
-                        $targetPath = ROOT . DS . 'tmp' . DS . 'uploads' . DS;
+                $allUploadedFiles = $this->request->getUploadedFiles();
 
-                        // Loop through each uploaded image
-                        foreach ($uploadedImages as $index => $uploadedImage) {
-                            if ($uploadedImage->getError() === UPLOAD_ERR_OK) {
-                                $filenameWithExtension = $uploadedImage->getClientFilename();
-                                $fileInfo = pathinfo($filenameWithExtension);
-                                $fileExtension = $fileInfo['extension'];
-
-                                // Define the target file for this image
-                                $targetFile = $targetPath . 'image_' . $index . '.' . $fileExtension;
-                                $targetFileLow = $targetPath . 'image_' . $index . '_low.' . $fileExtension;
-
-                                $firebaseController = new FireBaseController();
-                                $uploadedImage->moveTo($targetFile);
-                                $originalImage = null;
-                                switch ($fileExtension) {
-                                    case 'jpg':
-                                        $originalImage = imagecreatefromjpeg($targetFile);
-                                        break;
-                                    case 'png':
-                                        $originalImage = imagecreatefrompng($targetFile);
-                                        break;
-                                    case 'jpeg':
-                                        $originalImage = imagecreatefromjpeg($targetFile);
-                                        break;
-                                }
-                                if ($originalImage) {
-                                    $width = imagesx($originalImage);
-                                    $height = imagesy($originalImage);
-
-                                    $newHeight = 1080;
-                                    $newWidth = ($width / $height) * $newHeight;
-                                    $newImage = $this->resize_image($originalImage, (int)$newWidth, (int)$newHeight);
-                                    imagejpeg($newImage, $targetFile, 80);
-
-                                    $newHeight = 360;
-                                    $newWidth = ($width / $height) * $newHeight;
-                                    $newImageLow = $this->resize_image($originalImage, (int)$newWidth, (int)$newHeight);
-                                    imagejpeg($newImageLow, $targetFileLow, 80);
-                                }
-
-                                $uploaded = $firebaseController->uploadImage('job_images/' . $job->hashed_id . '/' . 'image_' . $index . '.' . $fileExtension, $targetFile);
-                                $uploadedLow = $firebaseController->uploadImage('job_images/' . $job->hashed_id . '/' . 'image_' . $index . '_low.' . $fileExtension, $targetFileLow);
-                                if ($uploaded && $uploadedLow) {
-                                    $status = 'success';
-                                    $message = 'Job saved successfully with images';
-                                } else {
-                                    // Error handling if the file cannot be moved or uploaded to Firebase
-                                    $message = 'Error occurred when uploading image ' . $index;
-                                    break; // Exit the loop on the first failure if needed
-                                }
-                            } else {
-                                $message = $uploadedImage->getError();
-                                break;
-                            }
-                        }
-                    } else {
-                        $message = 'No images were uploaded';
-                    }
-
+                if (!empty($allUploadedFiles) && isset($allUploadedFiles['image'])) {
+                    $uploadedImages = $allUploadedFiles['image'];
                 } else {
-                    $message = 'Failed to save the job';
+                    $uploadedImages = null;
+                }
+
+                $status = 'error'; // Default status
+                $message = 'Error occurred when uploading image(s)';
+
+                if (!empty($uploadedImages)) {
+                    $targetPath = ROOT . DS . 'tmp' . DS . 'uploads' . DS;
+
+                    // Loop through each uploaded image
+                    foreach ($uploadedImages as $index => $uploadedImage) {
+                        if ($uploadedImage->getError() === UPLOAD_ERR_OK) {
+                            $filenameWithExtension = $uploadedImage->getClientFilename();
+                            $fileInfo = pathinfo($filenameWithExtension);
+                            $fileExtension = $fileInfo['extension'];
+
+                            // Define the target file for this image
+                            $targetFile = $targetPath . 'image_' . $index . '.' . $fileExtension;
+                            $targetFileLow = $targetPath . 'image_' . $index . '_low.' . $fileExtension;
+
+                            $firebaseController = new FireBaseController();
+                            $uploadedImage->moveTo($targetFile);
+                            $originalImage = null;
+                            switch ($fileExtension) {
+                                case 'jpg':
+                                    $originalImage = imagecreatefromjpeg($targetFile);
+                                    break;
+                                case 'png':
+                                    $originalImage = imagecreatefrompng($targetFile);
+                                    break;
+                                case 'jpeg':
+                                    $originalImage = imagecreatefromjpeg($targetFile);
+                                    break;
+                            }
+                            if ($originalImage) {
+                                $width = imagesx($originalImage);
+                                $height = imagesy($originalImage);
+
+                                $newHeight = 1080;
+                                $newWidth = ($width / $height) * $newHeight;
+                                $newImage = $this->resize_image($originalImage, (int)$newWidth, (int)$newHeight);
+                                imagejpeg($newImage, $targetFile, 80);
+
+                                $newHeight = 360;
+                                $newWidth = ($width / $height) * $newHeight;
+                                $newImageLow = $this->resize_image($originalImage, (int)$newWidth, (int)$newHeight);
+                                imagejpeg($newImageLow, $targetFileLow, 80);
+                            }
+
+                            $uploaded = $firebaseController->uploadImage('job_images/' . $hashedId . '/' . 'image_' . $index . '.' . $fileExtension, $targetFile);
+                            $uploadedLow = $firebaseController->uploadImage('job_images/' . $hashedId . '/' . 'image_' . $index . '_low.' . $fileExtension, $targetFileLow);
+                            if ($uploaded && $uploadedLow) {
+                                $canAddJob = true;
+                            } else {
+                                // Error handling if the file cannot be moved or uploaded to Firebase
+                                $message = 'Error occurred when uploading image ' . $index;
+                                break; // Exit the loop on the first failure if needed
+                            }
+                        } else {
+                            $message = $uploadedImage->getError();
+                            break;
+                        }
+                    }
+                } else {
+                    $canAddJob = true;
+                    // $message = 'No images were uploaded';
                 }
             }
+        }
+
+        if ($canAddJob) {
+            $saveData = [
+                'user_id' => $this->authenticatedUser->id,
+                'title' => trim($data['title']),
+                'description' => trim($data['description']),
+                'address' => trim($data['address']),
+                'lat' => 0,
+                'lng' => 0,
+                'date' => new FrozenTime($data['date']),
+                'estimated_time' => $data['duration'],
+                'full_salary' => $data['full_salary'],
+                'pictures' => is_array($uploadedImages) ? count($uploadedImages) : 0,
+                'hashed_id' => $hashedId
+            ];
+            $job = $this->Jobs->newEntity($saveData);
+            if ($this->Jobs->save($job)) {
+                $status = 'success';
+                $message = 'Job saved successfully';
+            } else {
+                $message = 'Failed to save the job';
+            }
+        } else {
+            $message = 'Failed to save the job';
         }
         $this->set(compact('message', 'status'));
         $this->set('_serialize', ['message', 'status']);
@@ -219,12 +237,17 @@ class AppController extends Controller
     }   
 
     private function validateJobData($data) {
-        if (!$data['title'] || !$data['date'] || !$data['duration'] || !$data['full_salary'] || !$data['description'] || !$data['address']) {
-            return false;
+        $requiredKeys = ['title', 'date', 'duration', 'full_salary', 'description', 'address'];
+    
+        foreach ($requiredKeys as $key) {
+            if (!isset($data[$key]) || !$data[$key]) {
+                return false;
+            }
         }
-        
+    
         return true;
     }
+    
 
     public function job($id) {
         $responseData = [

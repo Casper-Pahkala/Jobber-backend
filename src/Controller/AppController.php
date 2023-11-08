@@ -65,11 +65,11 @@ class AppController extends Controller
                 $this->Authentication->setIdentity($dbUser);
                 $user = $this->Authentication->getIdentity();
     
-                $key = Configure::read('JWT.SecretKey'); // keep this secret and safe!
+                $key = Configure::read('JWT.SecretKey');
                 $payload = [
                     "id" => $user->id,
                     "email" => $user->email,
-                    "exp" => time() + (60*60) // expires in 1 hour
+                    "exp" => time() + (60*60)
                 ];
                 
                 $token = JWT::encode($payload, $key, 'HS256');

@@ -143,7 +143,16 @@ class UsersTable extends Table
             'first_name',
             'last_name',
             'hashed_id',
-            '   has_image' => 'CASE WHEN Users.profile_image IS NULL THEN 0 ELSE 1 END'
+            'has_image' => 'CASE WHEN Users.profile_image IS NULL THEN 0 ELSE 1 END'
+        ]);
+    }
+
+    public function essential($query)
+    {
+        return $query->select([
+            'hashed_id',
+            'name' => 'CONCAT(first_name, " ", last_name)',
+            'profile_image',
         ]);
     }
 }

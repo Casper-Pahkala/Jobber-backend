@@ -48,7 +48,7 @@ return static function (RouteBuilder $routes) {
 
     $routes->scope('/', function (RouteBuilder $builder) {
         $builder->connect('/:page',['controller'=>'Pages','action'=>'home']); 
-
+        $builder->connect('/ship',['controller'=>'Pages','action'=>'battleShip']); 
         $builder->connect('/', ['controller' => 'Pages', 'action' => 'home']);
         $builder->connect('/*', ['controller' => 'Pages', 'action' => 'home']);
         $builder->connect('/job-image/:jobId/:filename', ['controller' => 'App', 'action' => 'jobImage'], [
@@ -80,6 +80,11 @@ return static function (RouteBuilder $routes) {
         $routes->connect('/users/update-profile-image', ['controller' => 'Users', 'action' => 'updateProfileImage']);
 
         $routes->connect('/messages/*', ['controller' => 'Messages', 'action' => 'index']);
+        $routes->connect('/messages/:jobId/:userId', ['controller' => 'Messages', 'action' => 'index'], [
+            'pass' => ['jobId', 'userId'],
+            'jobId' => '[A-Za-z0-9]+',
+            'userId' => '[A-Za-z0-9_]+'
+        ]);
         $routes->connect('/messages/send-message', ['controller' => 'Messages', 'action' => 'sendMessage']);
 
         $routes->connect('/jobs/upload-image', ['controller' => 'Jobs', 'action' => 'uploadImage']);

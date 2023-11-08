@@ -420,5 +420,8 @@ return [
      */
     'Session' => [
         'defaults' => 'php',
+        'timeout' => 5256000, // Set to 10 years (in minutes)
+        'cookieTimeout' => 5256000, // Set to 10 years (in minutes)
     ],
+    
 ];

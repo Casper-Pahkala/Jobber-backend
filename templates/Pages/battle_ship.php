@@ -13,17 +13,16 @@ $this->disableAutoLayout();
   <meta charset="UTF-8" />
   <link rel="icon" href="/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jobber</title>
-  <script type="module" crossorigin src="/assets/index-624479a9.js"></script>
-  <link rel="stylesheet" href="/assets/index-c3956958.css">
+  <title>Battleship</title>
+  <script type="module" crossorigin src="/ship_assets/index-482ad499.js"></script>
+  <link rel="stylesheet" href="/ship_assets/index-fa54c5da.css">
 </head>
 
 
 <body>
   <div id="app"></div>
   <script>
-    window.baseUrl = '159.89.96.65';
-    window.url = 'http://159.89.96.65';
+    window.url = 'http://165.227.145.175';
     window.auth_token = '<?= $token ?>';
   </script>
 </body>

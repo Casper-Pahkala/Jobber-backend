@@ -144,6 +144,20 @@ class UsersController extends AppController
         return $token;
     }
 
+    public function logout() {
+        $message = 'Logout failed';
+        $status = 'error';
+        if ($this->request->is('post')) {
+            if ($this->authenticatedUser) {
+                $this->Authentication->logout();
+                $message = 'Logout succesful';
+                $status = 'success';
+            }
+        }
+        $this->set(compact('message', 'status'));
+        $this->set('_serialize', ['message', 'status']);
+    }
+
     public function myMessages() {
         $message = 'Invalid auth token';
         $status = 'error';
@@ -158,111 +172,56 @@ class UsersController extends AppController
             $this->loadModel('Messages');
 
             $userId = $this->authenticatedUser->id;
-            $messages = $this->Messages->find()
-            ->select([
-                'id',
-                'job_hashed_id',
-                'message',
-                'time' => 'created_at',
-                'other_user_id' => 'OtherUsers.hashed_id'
-            ])
-            ->join([
-                'OtherUsers' => [
-                    'type' => 'LEFT',
-                    'table' => 'users',
-                    'conditions' => [
-                        'OR' => [
-                            'OtherUsers.id = Messages.sender_id',
-                            'OtherUsers.id = Messages.receiver_id',
-                        ],
-                        "OtherUsers.id != $userId"
+            $data = $this->Messages->find()
+                ->select([
+                    'id',
+                    'job_hashed_id',
+                    'message',
+                    'time' => 'Messages.created_at',
+                    'other_user_id' => 'OtherUsers.hashed_id',
+                    'other_user_image' => 'OtherUsers.profile_image',
+                    'other_full_name' => 'CONCAT(OtherUsers.first_name, " ", OtherUsers.last_name)',
+                    'job_title' => 'Job.title',
+                    'deleted' => 'CASE WHEN Job.id IS NULL THEN TRUE ELSE FALSE END'
+                ])
+                ->join([
+                    'OtherUsers' => [
+                        'type' => 'LEFT',
+                        'table' => 'users',
+                        'conditions' => [
+                            'OR' => [
+                                'OtherUsers.id = Messages.sender_id',
+                                'OtherUsers.id = Messages.receiver_id',
+                            ],
+                            "OtherUsers.id != $userId"
+                        ]
+                    ],
+                ])
+                ->contain([
+                    'Job'
+                ])
+                ->order([
+                    'Messages.created_at' => 'DESC'
+                ])
+                ->where([
+                    'OR' => [
+                        'Messages.sender_id' => $userId,
+                        'Messages.receiver_id' => $userId
                     ]
-                ]
-            ])
-            ->order([
-                'Messages.created_at' => 'DESC'
-            ])
-            ->where([
-                'OR' => [
-                    'Messages.sender_id' => $userId,
-                    'Messages.receiver_id' => $userId
-                ]
-            ])
-            ->toArray();
+                ])
+                ->toArray();
 
-            $jobHashedIds = [];
-            $userHashedIds = [];
-            $data = [];
-            foreach($messages as $message) {
-                if (!in_array($message['job_hashed_id'], $jobHashedIds)) {
-                    $jobHashedIds[] = $message['job_hashed_id'];
+            // Get only the latest message
+            $messages = array_reduce($data, function($carry, $item) {
+                $key = $item['job_hashed_id'] . $item['other_user_id'];
+                if (!isset($carry[$key]) || $item['time'] > $carry[$key]['time']) {
+                    $carry[$key] = $item;
                 }
+                return $carry;
+            }, []);
 
-                if (!isset($data[$message['job_hashed_id']])) {
-                    $data[$message['job_hashed_id']] = $message;
-                }
-
-                if (!in_array($message['other_user_id'], $jobHashedIds)) {
-                    $userHashedIds[] = $message['other_user_id'];
-                }
-            }
-
-            $this->loadModel('Jobs');
-            $jobs = [];
-            if (!empty($jobHashedIds)) {
-                $jobs = $this->Jobs->find()
-                    ->select([
-                        'title',
-                        'description',
-                        'date',
-                        'estimated_time',
-                        'full_salary',
-                        'Jobs.hashed_id',
-                        'Users.first_name',
-                        'Users.last_name'
-                    ])
-                    ->where([
-                        'Jobs.hashed_id IN ' => $jobHashedIds
-                    ])
-                    ->contain([
-                        'Users'
-                    ])
-                    ->toArray();
-            }
-
-            $this->loadModel('Users');
-            $users = [];
-            if (!empty($userHashedIds)) {
-                $users = $this->Users->find()
-                    ->select([
-                        'first_name',
-                        'last_name',
-                        'hashed_id',
-                        'has_image' => 'CASE WHEN profile_image IS NULL THEN FALSE ELSE TRUE END'
-                    ])
-                    ->where([
-                        'hashed_id IN ' => $userHashedIds
-                    ])
-                    ->toArray();
-            }
-
-            $messages = array_values($data);
-            
-            foreach($messages as $message) {
-                foreach($jobs as $job) {
-                    if ($job['hashed_id'] == $message['job_hashed_id']) {
-                        $message['job'] = $job;
-                    }
-                }
-                foreach($users as $user) {
-                    if ($user['hashed_id'] == $message['other_user_id']) {
-                        $message['user'] = $user;
-                    }
-                }
-            }
-
-
-            
+            // Convert the result back to a numerically indexed array
+            $messages = array_values($messages);       
             $status = 'success';
             $message = '';
         } else {

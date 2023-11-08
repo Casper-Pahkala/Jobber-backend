@@ -1,1 +1,0 @@
-import{_ as t}from"./_plugin-vue_export-helper-c27b6911.js";import{az as c,aA as e}from"./index-285710b9.js";const o={};function r(n,a){return c(),e("h1",null,"Käyttäjä")}const f=t(o,[["render",r]]);export{f as default};

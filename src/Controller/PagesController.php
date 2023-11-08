@@ -47,12 +47,16 @@ class PagesController extends AppController
     public function initialize(): void
     {
         parent::initialize();
-        $this->Authentication->addUnauthenticatedActions(['home']);
+        $this->Authentication->addUnauthenticatedActions(['home', 'battleShip']);
     }
  
     public function home(string ...$path)
     {
         // $this->viewBuilder()->setLayout('home'); 
+
+    }
+
+    public function battleShip(string ...$path) {
 
     }
 }
