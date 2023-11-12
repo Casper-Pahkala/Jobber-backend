@@ -26,8 +26,6 @@ use Cake\Validation\Validator;
  * @method \App\Model\Entity\User[]|\Cake\Datasource\ResultSetInterface saveManyOrFail(iterable $entities, $options = [])
  * @method \App\Model\Entity\User[]|\Cake\Datasource\ResultSetInterface|false deleteMany(iterable $entities, $options = [])
  * @method \App\Model\Entity\User[]|\Cake\Datasource\ResultSetInterface deleteManyOrFail(iterable $entities, $options = [])
- *
- * @mixin \Cake\ORM\Behavior\TimestampBehavior
  */
 class UsersTable extends Table
 {
@@ -45,11 +43,10 @@ class UsersTable extends Table
         $this->setDisplayField('id');
         $this->setPrimaryKey('id');
 
-        $this->addBehavior('Timestamp');
-
         $this->hasMany('Jobs', [
             'foreignKey' => 'user_id',
         ]);
+
         $this->addBehavior('HashedId');
 
         $this->hasMany('ReceivedMessages', [
@@ -75,6 +72,7 @@ class UsersTable extends Table
             ->scalar('hashed_id')
             ->maxLength('hashed_id', 255)
             ->allowEmptyString('hashed_id');
+
         $validator
             ->email('email')
             ->requirePresence('email', 'create')
@@ -95,11 +93,11 @@ class UsersTable extends Table
             ->scalar('last_name')
             ->maxLength('last_name', 255)
             ->allowEmptyString('last_name');
-        
+
         $validator
             ->scalar('profile_image')
             ->maxLength('profile_image', 255)
-            ->allowEmptyString('profile_image');
+            ->allowEmptyFile('profile_image');
 
         $validator
             ->scalar('provider')
@@ -117,7 +115,20 @@ class UsersTable extends Table
 
         $validator
             ->scalar('role')
+            ->maxLength('role', 255)
             ->allowEmptyString('role');
+
+        $validator
+            ->boolean('is_deleted')
+            ->allowEmptyString('is_deleted');
+
+        $validator
+            ->dateTime('created_at')
+            ->notEmptyDateTime('created_at');
+
+        $validator
+            ->dateTime('modified_at')
+            ->notEmptyDateTime('modified_at');
 
         return $validator;
     }

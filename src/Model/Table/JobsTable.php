@@ -95,6 +95,10 @@ class JobsTable extends Table
             ->allowEmptyString('pictures');
 
         $validator
+            ->boolean('is_deleted')
+            ->allowEmptyString('is_deleted');
+
+        $validator
             ->dateTime('modified_at')
             ->allowEmptyDateTime('modified_at');
 

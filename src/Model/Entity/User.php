@@ -47,6 +47,7 @@ class User extends Entity
         'modified' => true,
         'is_active' => true,
         'role' => true,
+        'is_deleted' => true,
         'jobs' => true,
     ];
 

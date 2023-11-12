@@ -19,7 +19,7 @@ class UsersController extends AppController
     public function initialize(): void
     {
         parent::initialize();
-        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit']);
     }
 
     public function index() {
@@ -182,7 +182,7 @@ class UsersController extends AppController
                     'other_user_image' => 'OtherUsers.profile_image',
                     'other_full_name' => 'CONCAT(OtherUsers.first_name, " ", OtherUsers.last_name)',
                     'job_title' => 'Job.title',
-                    'deleted' => 'CASE WHEN Job.id IS NULL THEN TRUE ELSE FALSE END'
+                    'deleted' => 'Job.is_deleted'
                 ])
                 ->join([
                     'OtherUsers' => [
@@ -207,7 +207,8 @@ class UsersController extends AppController
                     'OR' => [
                         'Messages.sender_id' => $userId,
                         'Messages.receiver_id' => $userId
-                    ]
+                    ],
+                    'Job.id IS NOT NULL'
                 ])
                 ->toArray();
 
@@ -230,6 +231,40 @@ class UsersController extends AppController
 
         $this->set(compact('message', 'status', 'messages'));
         $this->set('_serialize', ['message', 'status', 'messages']);
+    }
+
+    public function myListings() {
+        $message = 'Invalid auth token';
+        $status = 'error';
+        $listings = [];
+        if (!$this->authenticatedUser) {
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        if ($this->request->is('get')) {
+            $this->loadModel('Jobs');
+            $userId = $this->authenticatedUser->id;
+            $jobs = $this->Jobs->find()
+                // ->select([
+                //     'id',
+
+                // ])
+                ->where([
+                    'user_id' => $userId,
+                ])
+                ->order([
+                    'Jobs.created_at'=> 'DESC'
+                ])
+                ->toArray();
+            
+            $listings = $jobs;
+            $status = 'success';
+            $message = '';
+        }
+        $this->set(compact('message', 'status', 'listings'));
+        $this->set('_serialize', ['message', 'status', 'listings']);
     }
 
     public function updateProfileImage() {
@@ -316,5 +351,116 @@ class UsersController extends AppController
         $max = pow(10, $length) - 1; // Maximum value for the specified length (e.g., for 12 digits, it's 999999999999).
     
         return rand((int)$min, (int)$max);
+    }
+
+    public function edit() {
+        $message = 'Invalid auth token';
+        $status = 'error';
+        if (!$this->authenticatedUser) {
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        if ($this->request->is('post')) {
+            $data = $this->request->getData();
+
+            $this->loadModel('Users');
+
+            if ($data['type'] == 'email') {
+                if ($this->validateEmailEditData($data)) {
+    
+                    $user = $this->Users->find()
+                        ->where([
+                            'email'=> $data['email'],
+                        ])
+                        ->first();
+                    
+                    if ($user && !empty($user)) {
+    
+                        $message = 'Sähköposti on käytössä toisella tilillä';
+                        $status = 'error';
+    
+                        $this->set(compact('message', 'status'));
+                        $this->set('_serialize', ['message', 'status']);
+                        return;
+                    }
+                    $this->authenticatedUser->email = trim($data['email']);
+                    if($this->Users->save($this->authenticatedUser)) {
+                        $message = 'Email update successful';
+                        $status = 'success';
+                    } else {
+                        $message = 'Error occurred when updating email';
+                        $status = 'error';
+                    }
+    
+                } else {
+                    $message = 'Data validation error';
+                    $status = 'error';
+                }
+            } else if ($data['type'] == 'name') {
+                if ($this->validateNameData($data)) {
+                    $this->authenticatedUser->first_name = trim($data['first_name']);
+                    $this->authenticatedUser->last_name = trim($data['last_name']);
+                    if($this->Users->save($this->authenticatedUser)) {
+                        $message = 'Name update successful';
+                        $status = 'success';
+                    } else {
+                        $message = 'Error occurred when updating name';
+                        $status = 'error';
+                    }
+                } else {
+                    $message = 'Data validation error';
+                    $status = 'error';
+                }
+            }
+        }
+        $this->set(compact('message', 'status'));
+        $this->set('_serialize', ['message', 'status']);
+    }
+
+    private function validateNameData($data) {
+        if (!isset($data['first_name']) || trim($data['first_name']) == '' || !isset($data['last_name']) || trim($data['last_name']) == '') {
+            return false;
+        }
+        return true;
+    }
+
+    private function validateEmailEditData($data) {
+        if (!isset($data['email']) || trim($data['email']) == '' || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+        return true;
+    }
+
+    public function deleteUser() {
+        $message = 'Invalid auth token';
+        $status = 'error';
+        if (!$this->authenticatedUser) {
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        if ($this->authenticatedUser->is_deleted) {
+            $message = 'User already deleted';
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        $this->loadModel('Users');
+        $this->authenticatedUser->is_deleted = true;
+        if ($this->Users->save($this->authenticatedUser)) {
+            $this->Authentication->logout();
+            $message = 'Deletion successful';
+            $status = 'success';
+        } else {
+            $message = 'Error occurred on user deletion';
+            $status = 'error';
+        }
+
+        $this->set(compact('message', 'status'));
+        $this->set('_serialize', ['message', 'status']);
     }
 }

@@ -41,6 +41,7 @@ class Job extends Entity
         'estimated_time' => true,
         'full_salary' => true,
         'pictures' => true,
+        'is_deleted' => true,
         'modified_at' => true,
         'created_at' => true,
         'lat' => true,

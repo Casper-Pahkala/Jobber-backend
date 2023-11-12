@@ -25,7 +25,7 @@ class AppController extends Controller
         header('Access-Control-Allow-Methods: POST, GET, PUT, PATCH, DELETE, OPTIONS');
         header('Access-Control-Allow-Headers: *');
 
-        $this->Authentication->addUnauthenticatedActions(['getJobs', 'job', 'addJob']);
+        $this->Authentication->addUnauthenticatedActions(['getJobs', 'job', 'addJob', 'deleteListing']);
         $identity = $this->request->getAttribute('authUser');
         $token = $this->request->getAttribute('token');
         if ($identity) {
@@ -55,19 +55,16 @@ class AppController extends Controller
                         ]
                     ]
                 ])
+                ->where([
+                    'Jobs.is_deleted IS NOT TRUE',
+                ])
                 ->order([
                     'Jobs.created_at'=> 'DESC'
                 ]);
 
             $jobsCount = $this->Jobs->find()
-                ->contain([
-                    'Users' => [
-                        'fields' => [
-                            'Users.hashed_id',
-                            'first_name',
-                            'last_name'
-                        ]
-                    ]
+                ->where([
+                    'Jobs.is_deleted IS NOT TRUE',
                 ])
                 ->count();
 
@@ -177,23 +174,40 @@ class AppController extends Controller
                     $canAddJob = true;
                     // $message = 'No images were uploaded';
                 }
+            } else {
+                $message = 'Data validation error';
+                $status = 'error';
+                $this->set(compact('message', 'status'));
+                $this->set('_serialize', ['message', 'status']);
+                return;
             }
         }
 
         if ($canAddJob) {
             $saveData = [
                 'user_id' => $this->authenticatedUser->id,
-                'title' => trim($data['title']),
-                'description' => trim($data['description']),
-                'address' => trim($data['address']),
-                'lat' => 0,
-                'lng' => 0,
-                'date' => new FrozenTime($data['date']),
-                'estimated_time' => $data['duration'],
-                'full_salary' => $data['full_salary'],
                 'pictures' => is_array($uploadedImages) ? count($uploadedImages) : 0,
                 'hashed_id' => $hashedId
             ];
+
+            $strings = ['title', 'description', 'address'];
+            $numbers = ['duration', 'full_salary'];
+
+            foreach ($data as $key => $dataValue) {
+                if (in_array($key, $strings)) {
+                    if ($dataValue && trim($dataValue) != '') {
+                        $saveData[$key] = trim($dataValue);
+                    }
+                }
+
+                if (in_array($key, $numbers)) {
+                    if ($dataValue && is_numeric($dataValue)) {
+                        $saveData[$key] = intval($dataValue);
+                    }
+                }
+            }
+
+
             $job = $this->Jobs->newEntity($saveData);
             if ($this->Jobs->save($job)) {
                 $status = 'success';
@@ -237,7 +251,8 @@ class AppController extends Controller
     }   
 
     private function validateJobData($data) {
-        $requiredKeys = ['title', 'date', 'duration', 'full_salary', 'description', 'address'];
+        return true;
+        $requiredKeys = ['title', 'duration', 'full_salary', 'description', 'address'];
     
         foreach ($requiredKeys as $key) {
             if (!isset($data[$key]) || !$data[$key]) {
@@ -277,5 +292,65 @@ class AppController extends Controller
             }
         }
         return $this->response->withType('application/json')->withStringBody(json_encode($responseData));
+    }
+
+    public function deleteListing() {
+        $message = 'Invalid auth token';
+        $status = 'error';
+        if (!$this->authenticatedUser) {
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        if ($this->request->is('post')) {
+            $data = $this->request->getData();
+
+            if ($this->validateDeletionData($data)) {
+
+                $this->loadModel('Jobs');
+
+                $job = $this->Jobs->find()
+                    ->where([
+                        'hashed_id' => $data['job_id'],
+                    ])
+                    ->first();
+
+                if ($job && !empty($job)) {
+
+                    if ($job->is_deleted) {
+                        $status = 'error';
+                        $message = 'Listing already deleted';
+
+                        $this->set(compact('message', 'status'));
+                        $this->set('_serialize', ['message', 'status']);
+                        return;
+                    }
+
+                    $job->is_deleted = true;
+                    if($this->Jobs->save($job)) {
+                        $message = 'Deletion successful';
+                        $status = 'success';
+                    } else {
+                        $message = 'Error occurred when deleting listing';
+                        $status = 'error';
+                    }
+
+                }
+
+            } else {
+                $message = 'Data validation error';
+                $status = 'error';
+            }
+        }
+        $this->set(compact('message', 'status'));
+        $this->set('_serialize', ['message', 'status']);
+    }
+
+    private function validateDeletionData($data) {
+        if (!isset($data['job_id']) || empty($data['job_id'])) {
+            return false;
+        }
+        return true;
     }
 }

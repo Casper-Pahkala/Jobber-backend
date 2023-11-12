@@ -73,12 +73,13 @@ return static function (RouteBuilder $routes) {
         $routes->connect('/:action', ['controller' => 'App'], ['pass' => ['action']]);
         $routes->connect('/job/*', ['controller' => 'App', 'action' => 'job']);
 
-        $routes->connect('/users/*', ['controller' => 'Users', 'action' => 'index']);
+        $routes->connect('/users', ['controller' => 'Users', 'action' => 'index']);
         $routes->connect('/users/register', ['controller' => 'Users', 'action' => 'register']);
         $routes->connect('/users/login', ['controller' => 'Users', 'action' => 'login']);
         $routes->connect('/users/my-messages', ['controller' => 'Users', 'action' => 'myMessages']);
+        $routes->connect('/users/my-listings', ['controller' => 'Users', 'action' => 'myListings']);
         $routes->connect('/users/update-profile-image', ['controller' => 'Users', 'action' => 'updateProfileImage']);
-
+        $routes->connect('/users/delete-user', ['controller' => 'Users', 'action' => 'deleteUser']);
         $routes->connect('/messages/*', ['controller' => 'Messages', 'action' => 'index']);
         $routes->connect('/messages/:jobId/:userId', ['controller' => 'Messages', 'action' => 'index'], [
             'pass' => ['jobId', 'userId'],
