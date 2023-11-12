@@ -45,7 +45,7 @@ return static function (RouteBuilder $routes) {
      * `{action}` markers.
      */
     $routes->setRouteClass(DashedRoute::class);
-
+    $routes->setExtensions(['jpg']);
     $routes->scope('/', function (RouteBuilder $builder) {
         $builder->connect('/:page',['controller'=>'Pages','action'=>'home']); 
         $builder->connect('/ship',['controller'=>'Pages','action'=>'battleShip']); 
