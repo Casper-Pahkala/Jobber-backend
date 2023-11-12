@@ -463,4 +463,65 @@ class UsersController extends AppController
         $this->set(compact('message', 'status'));
         $this->set('_serialize', ['message', 'status']);
     }
+    public function recentMessages()
+    {
+        $message = 'Invalid auth token';
+        $status = 'error';
+        $messages = [];
+        if (!$this->authenticatedUser) {
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        if ($this->request->is('get')) {
+            $this->loadModel('Messages');
+
+            $userId = $this->authenticatedUser->id;
+            $messages = $this->Messages->find()
+                ->select([
+                    'id',
+                    'job_hashed_id',
+                    'message',
+                    'time' => 'Messages.created_at',
+                    'other_user_id' => 'OtherUsers.hashed_id',
+                    'other_user_image' => 'OtherUsers.profile_image',
+                    'other_full_name' => 'CONCAT(OtherUsers.first_name, " ", OtherUsers.last_name)',
+                    'job_title' => 'Job.title',
+                    'deleted' => 'Job.is_deleted',
+                    'seen'
+                ])
+                ->join([
+                    'OtherUsers' => [
+                        'type' => 'LEFT',
+                        'table' => 'users',
+                        'conditions' => [
+                            'OtherUsers.id = Messages.sender_id',
+                            "OtherUsers.id != $userId"
+                        ]
+                    ],
+                ])
+                ->contain([
+                    'Job'
+                ])
+                ->order([
+                    'Messages.created_at' => 'DESC'
+                ])
+                ->where([
+                    'Messages.receiver_id' => $userId,
+                    'Job.id IS NOT NULL',
+                    'Messages.seen IS NULL'
+                ])
+                ->toArray();
+
+            // Convert the result back to a numerically indexed array
+            $status = 'success';
+            $message = '';
+        } else {
+            $message = 'Invalid request type';
+        }
+
+        $this->set(compact('message', 'status', 'messages'));
+        $this->set('_serialize', ['message', 'status', 'messages']);
+    }
 }
