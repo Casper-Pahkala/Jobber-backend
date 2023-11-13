@@ -3,6 +3,7 @@ namespace App\Controller\Api;
 use App\Controller\Api\AppController;
 use WebSocket\Client as WebSocketClient;
 use Cake\Core\Configure;
+use Cake\I18n\FrozenTime;
 class MessagesController extends AppController
 {
     public function initialize(): void
@@ -11,7 +12,7 @@ class MessagesController extends AppController
         $this->Authentication->addUnauthenticatedActions(['sendMessage', 'getMessages', 'index']);
     }
 
-    public function index($jobId, $userId) {
+    public function index($jobId, $otherUserId) {
         $message = 'Invalid auth token';
         $status = 'error';
         $messages = [];
@@ -32,7 +33,7 @@ class MessagesController extends AppController
 
             $otherUser = $this->Users->find()
                 ->where([
-                    'hashed_id' => $userId
+                    'hashed_id' => $otherUserId
                 ])
                 ->first();
             
@@ -48,9 +49,32 @@ class MessagesController extends AppController
             $messages = $this->Messages->find()
                 ->select([
                     'id',
+                    'job_hashed_id',
                     'message',
+                    'time' => 'Messages.created_at',
+                    'other_user_id' => 'OtherUsers.hashed_id',
+                    'other_user_image' => 'OtherUsers.profile_image',
+                    'other_full_name' => 'CONCAT(OtherUsers.first_name, " ", OtherUsers.last_name)',
+                    'job_title' => 'Job.title',
+                    'deleted' => 'Job.is_deleted',
                     'received' => "CASE WHEN Messages.sender_id = $requestUserId THEN FALSE ELSE TRUE END",
-                    'time' => 'created_at'
+                    'seen'
+                ])
+                ->join([
+                    'OtherUsers' => [
+                        'type' => 'LEFT',
+                        'table' => 'users',
+                        'conditions' => [
+                            'OR' => [
+                                'OtherUsers.id = Messages.sender_id',
+                                'OtherUsers.id = Messages.receiver_id',
+                            ],
+                            "OtherUsers.id != $requestUserId"
+                        ]
+                    ],
+                ])
+                ->contain([
+                    'Job'
                 ])
                 ->where([
                     'job_hashed_id'=> $jobId,
@@ -65,8 +89,18 @@ class MessagesController extends AppController
                         ],
                     ]
                 ])
-                ->enableHydration(false)
                 ->toArray();
+
+            $unSeenMessages = [];
+            $now = new FrozenTime();
+            $now->settimezone('Europe/Helsinki');
+            foreach ($messages as &$message) {
+                if ($message['received'] && !$message['seen']) {
+                    $message['seen'] = $now;
+                    $unSeenMessages[] = $message;
+                }
+            }
+            unset($message);
 
             $job = $this->Jobs->find()
                 ->where([
@@ -79,8 +113,28 @@ class MessagesController extends AppController
                     // }
                 ])
                 ->first();
-            $status = 'success';
-            $message = '';
+            if (!empty($unSeenMessages)) {
+                if($this->Messages->saveMany($unSeenMessages)) {
+                    $status = 'success';
+                    $message = '';
+                } else {
+                    $status = 'error';
+                    $message = 'An error occurred when updating unseen messages';
+                }
+            } else {
+                $status = 'success';
+                $message = '';
+            }
+
+            // Send seen to ws
+            $payload = [
+                'action' => 'CHAT_SEEN',
+                'receiver_id' => $otherUserId,
+                'other_user_id' => $this->authenticatedUser->hashed_id,
+                'job_id' => $jobId,
+                'seen' => $now
+            ];
+            $this->sendMessageToWebSocket($payload);
         } else {
             $message = 'Invalid request type';
         }
@@ -142,15 +196,20 @@ class MessagesController extends AppController
                 ];
                 
                 $messageEntity = $this->Messages->newEntity($saveData);
-                if ($this->Messages->save($messageEntity)) {
+                $savedMessage = $this->Messages->save($messageEntity);
+
+                $now = new FrozenTime();
+                $now->settimezone('Europe/Helsinki');
+                if ($savedMessage) {
                     $message = 'Message sent succesfully';
                     $status = 'success';
-
                     $websocketPayload = [
                         'action' => 'CHAT_MESSAGE',
                         'message' => $saveData['message'],
                         'sender_id' => $this->authenticatedUser->hashed_id,
-                        'receiver_id' => $receiver->hashed_id
+                        'receiver_id' => $receiver->hashed_id,
+                        'job_hashed_id' => $saveData['job_hashed_id'],
+                        'time' => $now
                     ];
 
                     if(!$this->sendMessageToWebSocket($websocketPayload)) {
@@ -194,5 +253,9 @@ class MessagesController extends AppController
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    public function openChat() {
+
     }
 }

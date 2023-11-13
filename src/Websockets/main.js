@@ -6,6 +6,9 @@ const { type } = require('os');
 const app = express();
 const server = http.createServer(app);
 const ws = new WebSocket.Server({ server });
+const moment = require('moment');
+require('moment-timezone');
+
 var clients = [];
 var messages = [];
 
@@ -72,26 +75,43 @@ function handleClientMessage(ws, message) {
     let user = clients.find(c => c.ws == ws);
     if (user) {
         if (user.admin) {
+            console.log(message);
+            let receiverClients = clients.filter(c => c.id == message.receiver_id && !c.disconnected);
             switch (message.action) {
                 case 'CHAT_MESSAGE':
-                    let receiverClients = clients.filter(c => c.id == message.receiver_id && !c.disconnected);
                     let senderClients = clients.filter(c => c.id == message.sender_id && !c.disconnected);
-                    let payload = {
-                        message: message.message,
-                        action: 'CHAT_MESSAGE'
-                    };
                     // console.log(receiver, sender);
+
+                    let payload = {
+                        action: message.action,
+                        message: {
+                            job_hashed_id: message.job_hashed_id,
+                            message: message.message,
+                            time: message.time
+                        }
+                    };
                     if (receiverClients.length > 0) {
-                        payload.received = 1;
+                        payload.message.received = 1;
+                        payload.message.other_user_id = message.sender_id;
                         receiverClients.forEach(client => {
                             client.ws.send(JSON.stringify(payload));
-                        })
+                        });
                     }
                     if (senderClients.length > 0) {
-                        payload.received = 0;
+                        payload.message.received = 0;
+                        payload.message.other_user_id = message.receiver_id;
                         senderClients.forEach(client => {
                             client.ws.send(JSON.stringify(payload));
-                        })
+                        });
+                    }
+                    break;
+
+                case 'CHAT_SEEN':
+                    // console.log(receiver, sender);
+                    if (receiverClients.length > 0) {
+                        receiverClients.forEach(client => {
+                            client.ws.send(JSON.stringify(message));
+                        });
                     }
                     break;
             }
