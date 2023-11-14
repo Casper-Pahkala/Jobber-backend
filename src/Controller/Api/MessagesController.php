@@ -209,7 +209,10 @@ class MessagesController extends AppController
                         'sender_id' => $this->authenticatedUser->hashed_id,
                         'receiver_id' => $receiver->hashed_id,
                         'job_hashed_id' => $saveData['job_hashed_id'],
-                        'time' => $now
+                        'time' => $now,
+                        'id' => $savedMessage->id,
+                        'other_full_name' => $receiver->first_name . ' ' . $receiver->last_name,
+                        'job_title' => $job->title
                     ];
 
                     if(!$this->sendMessageToWebSocket($websocketPayload)) {

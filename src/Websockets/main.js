@@ -80,14 +80,16 @@ function handleClientMessage(ws, message) {
             switch (message.action) {
                 case 'CHAT_MESSAGE':
                     let senderClients = clients.filter(c => c.id == message.sender_id && !c.disconnected);
-                    // console.log(receiver, sender);
 
                     let payload = {
                         action: message.action,
                         message: {
                             job_hashed_id: message.job_hashed_id,
                             message: message.message,
-                            time: message.time
+                            time: message.time,
+                            id: message.id,
+                            other_full_name: message.other_full_name,
+                            job_title: message.job_title
                         }
                     };
                     if (receiverClients.length > 0) {
@@ -107,7 +109,6 @@ function handleClientMessage(ws, message) {
                     break;
 
                 case 'CHAT_SEEN':
-                    // console.log(receiver, sender);
                     if (receiverClients.length > 0) {
                         receiverClients.forEach(client => {
                             client.ws.send(JSON.stringify(message));
