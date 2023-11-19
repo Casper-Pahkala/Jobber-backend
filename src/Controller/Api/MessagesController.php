@@ -107,7 +107,13 @@ class MessagesController extends AppController
                     'Jobs.hashed_id' => $jobId
                 ])
                 ->contain([
-                    'Users'
+                    'Users',
+                    'JobImages' => [
+                        'fields' => [
+                            'job_hashed_id',
+                            'name'
+                        ]
+                    ]
                     //  => function ($q) {
                     //     return $q->find('WithHasImage'); // Use the findWithHasImage function to include 'has_image'
                     // }

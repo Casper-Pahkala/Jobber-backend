@@ -50,6 +50,12 @@ class JobsTable extends Table
             'className' => 'Messages',
             'foreignKey' => 'job_hashed_id',
         ]);
+
+        $this->hasMany('JobImages', [
+            'foreignKey' => 'job_hashed_id',
+            'bindingKey' => 'hashed_id',
+            'className' => 'JobImages',
+        ]);
     }
 
     /**
@@ -61,58 +67,56 @@ class JobsTable extends Table
     public function validationDefault(Validator $validator): Validator
     {
         $validator
-            ->integer('user_id')
-            ->allowEmptyString('user_id');
-
-        $validator
             ->scalar('title')
             ->maxLength('title', 255)
-            ->allowEmptyString('title');
+            ->requirePresence('title', 'create')
+            ->notEmptyString('title');
 
         $validator
             ->scalar('description')
-            ->allowEmptyString('description');
+            ->requirePresence('description', 'create')
+            ->notEmptyString('description');
 
         $validator
-            ->scalar('address')
-            ->maxLength('address', 255)
-            ->allowEmptyString('address');
+            ->scalar('area')
+            ->maxLength('area', 255)
+            ->allowEmptyString('area');
 
         $validator
-            ->date('date')
-            ->allowEmptyDate('date');
+            ->integer('contract_type')
+            ->allowEmptyString('contract_type');
 
         $validator
-            ->integer('estimated_time')
-            ->allowEmptyString('estimated_time');
+            ->integer('hours')
+            ->allowEmptyString('hours');
 
         $validator
-            ->decimal('full_salary')
-            ->allowEmptyString('full_salary');
+            ->dateTime('date')
+            ->allowEmptyDateTime('date');
 
         $validator
-            ->integer('pictures')
-            ->allowEmptyString('pictures');
+            ->decimal('salary')
+            ->allowEmptyString('salary');
+
+        $validator
+            ->integer('salary_type')
+            ->allowEmptyString('salary_type');
+
+        $validator
+            ->integer('user_id')
+            ->allowEmptyString('user_id');
 
         $validator
             ->boolean('is_deleted')
             ->allowEmptyString('is_deleted');
 
         $validator
-            ->dateTime('modified_at')
-            ->allowEmptyDateTime('modified_at');
-
-        $validator
             ->dateTime('created_at')
             ->allowEmptyDateTime('created_at');
 
         $validator
-            ->numeric('lat')
-            ->allowEmptyString('lat');
-
-        $validator
-            ->numeric('lng')
-            ->allowEmptyString('lng');
+            ->dateTime('modified_at')
+            ->allowEmptyDateTime('modified_at');
 
         $validator
             ->scalar('hashed_id')
@@ -120,5 +124,19 @@ class JobsTable extends Table
             ->allowEmptyString('hashed_id');
 
         return $validator;
+    }
+
+    /**
+     * Returns a rules checker object that will be used for validating
+     * application integrity.
+     *
+     * @param \Cake\ORM\RulesChecker $rules The rules object to be modified.
+     * @return \Cake\ORM\RulesChecker
+     */
+    public function buildRules(RulesChecker $rules): RulesChecker
+    {
+        $rules->add($rules->existsIn('user_id', 'Users'), ['errorField' => 'user_id']);
+
+        return $rules;
     }
 }

@@ -14,7 +14,7 @@ $this->disableAutoLayout();
   <link rel="icon" href="/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jobber</title>
-  <script type="module" crossorigin src="/assets/index-c33e5e7d.js"></script>
+  <script type="module" crossorigin src="/assets/index-578f7d98.js"></script>
   <link rel="stylesheet" href="/assets/index-4d5cb60e.css">
 </head>
 

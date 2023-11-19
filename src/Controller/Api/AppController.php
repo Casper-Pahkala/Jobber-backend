@@ -282,7 +282,8 @@ class AppController extends Controller
                                 'first_name',
                                 'last_name'
                             ]
-                        ]
+                        ],
+                        'JobImages'
                     ])
                     ->first();
                 if ($job) {
