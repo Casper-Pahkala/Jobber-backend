@@ -78,7 +78,6 @@ return [
         'SecretKey' => 'kjashgfjkhasgfasjtgsdsddssdsdsgjhbkjbgfaksj'
     ],
     'Websocket' => [
-        'AdminToken' => 'aksljghaslkjyasfkuyasfuyasnbmo3j5sk912353nsx',
         'baseUrl' => 'rekrytor.fi',
         'url' => 'wss://rekrytor.fi',
         'port' => 8000
