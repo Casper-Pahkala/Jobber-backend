@@ -45,15 +45,14 @@ return static function (RouteBuilder $routes) {
      * `{action}` markers.
      */
     $routes->setRouteClass(DashedRoute::class);
-
+    $routes->setExtensions(['jpg']);
     $routes->scope('/', function (RouteBuilder $builder) {
         $builder->connect('/:page',['controller'=>'Pages','action'=>'home']); 
         $builder->connect('/ship',['controller'=>'Pages','action'=>'battleShip']); 
         $builder->connect('/', ['controller' => 'Pages', 'action' => 'home']);
         $builder->connect('/*', ['controller' => 'Pages', 'action' => 'home']);
-        $builder->connect('/job-image/:jobId/:filename', ['controller' => 'App', 'action' => 'jobImage'], [
+        $builder->connect('/job-image/:filename', ['controller' => 'App', 'action' => 'jobImage'], [
             'pass' => ['jobId', 'filename'],
-            'jobId' => '[A-Za-z0-9]+',
             'filename' => '[A-Za-z0-9_]+'
         ]);
 
@@ -61,6 +60,7 @@ return static function (RouteBuilder $routes) {
             'pass' => ['userId'],
             'userId' => '[A-Za-z0-9]+',
         ]);
+        $builder->connect('/jobs/upload-image', ['controller' => 'Jobs', 'action' => 'uploadImage']);
         $builder->fallbacks();
     });
 
@@ -70,9 +70,13 @@ return static function (RouteBuilder $routes) {
         $routes->setExtensions(['json']);
         // $routes->registerMiddleware('apiToken', new ApiTokenMiddleware());
         // $routes->applyMiddleware('apiToken');
-        $routes->connect('/:action', ['controller' => 'App'], ['pass' => ['action']]);
-        $routes->connect('/job/*', ['controller' => 'App', 'action' => 'job']);
+        // $routes->connect('/:action', ['controller' => 'App'], ['pass' => ['action']]);
 
+        $routes->connect('/add-job', ['controller' => 'Jobs', 'action' => 'addJob']);
+        $routes->connect('/job/:id', ['controller' => 'App', 'action' => 'job'], [
+            'pass' => ['id'],
+            'id' => '[A-Za-z0-9]+',
+        ]);
         $routes->connect('/users', ['controller' => 'Users', 'action' => 'index']);
         $routes->connect('/users/register', ['controller' => 'Users', 'action' => 'register']);
         $routes->connect('/users/login', ['controller' => 'Users', 'action' => 'login']);
@@ -89,6 +93,7 @@ return static function (RouteBuilder $routes) {
         $routes->connect('/messages/send-message', ['controller' => 'Messages', 'action' => 'sendMessage']);
 
         $routes->connect('/jobs/upload-image', ['controller' => 'Jobs', 'action' => 'uploadImage']);
+        $routes->connect('/jobs', ['controller' => 'Jobs', 'action' => 'getJobs']);
         $routes->fallbacks();
     });
 

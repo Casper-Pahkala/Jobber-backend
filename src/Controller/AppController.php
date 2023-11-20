@@ -86,10 +86,10 @@ class AppController extends Controller
         return true;
     }
 
-    public function jobImage($jobId, $filename = 'image_0') {
+    public function jobImage($filename) {
         if ($this->request->is('get')) {
             $firebaseController = new FireBaseController();
-            $imageStream = $firebaseController->downloadImage("job_images/$jobId", $filename);
+            $imageStream = $firebaseController->downloadImage("job_images", $filename);
             if (!$imageStream) {
                 $defaultImagePath = WWW_ROOT . 'no-img.png'; // Path to the default image
                 $defaultImageData = file_get_contents($defaultImagePath);

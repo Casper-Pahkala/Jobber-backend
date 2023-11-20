@@ -1,23 +1,31 @@
-const http = require('http');
+const https = require('https');
 const express = require('express');
 const WebSocket = require('ws');
 const fetch = require('node-fetch');
-const { type } = require('os');
 const app = express();
-const server = http.createServer(app);
-const ws = new WebSocket.Server({ server });
+const fs = require('fs');
+const privateKey = fs.readFileSync('/etc/letsencrypt/live/rekrytor.fi/privkey.pem', 'utf8');
+const certificate = fs.readFileSync('/etc/letsencrypt/live/rekrytor.fi/fullchain.pem', 'utf8');
+
+const credentials = { key: privateKey, cert: certificate };
+const httpsServer = https.createServer(credentials, app);
+const ws = new WebSocket.Server({ server: httpsServer });
+
+const moment = require('moment');
+require('moment-timezone');
+
 var clients = [];
 var messages = [];
 
 ws.on('connection', (ws, req) => {
-    const url = new URL(req.url, `http://${req.headers.host}`);
+    const url = new URL(req.url, `https://${req.headers.host}`);
     const token = url.searchParams.get('token');
     if (!token) {
         console.log('Client tried to connect without token');
         return;
     } else {
         console.log('Getting user data...');
-        fetch(`http://${url.hostname}/api/users.json`, {
+        fetch(`https://rekrytor.fi/api/users.json`, {
             method: 'GET',
             headers: {
                 Authorization: 'Bearer ' + token
@@ -54,7 +62,7 @@ ws.on('connection', (ws, req) => {
     });
 });
 
-server.listen(8000, () => {
+httpsServer.listen(8000, () => {
     console.log('Server is listening on port 8000');
 });
 
@@ -72,26 +80,44 @@ function handleClientMessage(ws, message) {
     let user = clients.find(c => c.ws == ws);
     if (user) {
         if (user.admin) {
+            console.log(message);
+            let receiverClients = clients.filter(c => c.id == message.receiver_id && !c.disconnected);
             switch (message.action) {
                 case 'CHAT_MESSAGE':
-                    let receiverClients = clients.filter(c => c.id == message.receiver_id && !c.disconnected);
                     let senderClients = clients.filter(c => c.id == message.sender_id && !c.disconnected);
+
                     let payload = {
-                        message: message.message,
-                        action: 'CHAT_MESSAGE'
+                        action: message.action,
+                        message: {
+                            job_hashed_id: message.job_hashed_id,
+                            message: message.message,
+                            time: message.time,
+                            id: message.id,
+                            other_full_name: message.other_full_name,
+                            job_title: message.job_title
+                        }
                     };
-                    // console.log(receiver, sender);
                     if (receiverClients.length > 0) {
-                        payload.received = 1;
+                        payload.message.received = 1;
+                        payload.message.other_user_id = message.sender_id;
                         receiverClients.forEach(client => {
                             client.ws.send(JSON.stringify(payload));
-                        })
+                        });
                     }
                     if (senderClients.length > 0) {
-                        payload.received = 0;
+                        payload.message.received = 0;
+                        payload.message.other_user_id = message.receiver_id;
                         senderClients.forEach(client => {
                             client.ws.send(JSON.stringify(payload));
-                        })
+                        });
+                    }
+                    break;
+
+                case 'CHAT_SEEN':
+                    if (receiverClients.length > 0) {
+                        receiverClients.forEach(client => {
+                            client.ws.send(JSON.stringify(message));
+                        });
                     }
                     break;
             }

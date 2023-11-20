@@ -19,7 +19,7 @@ class UsersController extends AppController
     public function initialize(): void
     {
         parent::initialize();
-        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit', 'recentMessages', 'logout']);
     }
 
     public function index() {
@@ -172,7 +172,8 @@ class UsersController extends AppController
             $this->loadModel('Messages');
 
             $userId = $this->authenticatedUser->id;
-            $data = $this->Messages->find()
+
+            $messages = $this->Messages->find()
                 ->select([
                     'id',
                     'job_hashed_id',
@@ -182,7 +183,9 @@ class UsersController extends AppController
                     'other_user_image' => 'OtherUsers.profile_image',
                     'other_full_name' => 'CONCAT(OtherUsers.first_name, " ", OtherUsers.last_name)',
                     'job_title' => 'Job.title',
-                    'deleted' => 'Job.is_deleted'
+                    'deleted' => 'Job.is_deleted',
+                    'received' => "CASE WHEN Messages.sender_id = $userId THEN FALSE ELSE TRUE END",
+                    'seen'
                 ])
                 ->join([
                     'OtherUsers' => [
@@ -213,16 +216,16 @@ class UsersController extends AppController
                 ->toArray();
 
             // Get only the latest message
-            $messages = array_reduce($data, function($carry, $item) {
-                $key = $item['job_hashed_id'] . $item['other_user_id'];
-                if (!isset($carry[$key]) || $item['time'] > $carry[$key]['time']) {
-                    $carry[$key] = $item;
-                }
-                return $carry;
-            }, []);
+            // $messages = array_reduce($data, function($carry, $item) {
+            //     $key = $item['job_hashed_id'] . $item['other_user_id'];
+            //     if (!isset($carry[$key]) || $item['time'] > $carry[$key]['time']) {
+            //         $carry[$key] = $item;
+            //     }
+            //     return $carry;
+            // }, []);
 
             // Convert the result back to a numerically indexed array
-            $messages = array_values($messages);       
+            // $messages = array_values($messages);       
             $status = 'success';
             $message = '';
         } else {

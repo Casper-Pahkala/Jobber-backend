@@ -14,7 +14,7 @@ $this->disableAutoLayout();
   <link rel="icon" href="/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jobber</title>
-  <script type="module" crossorigin src="/assets/index-c33e5e7d.js"></script>
+  <script type="module" crossorigin src="/assets/index-578f7d98.js"></script>
   <link rel="stylesheet" href="/assets/index-4d5cb60e.css">
 </head>
 
@@ -22,8 +22,8 @@ $this->disableAutoLayout();
 <body>
   <div id="app"></div>
   <script>
-    window.baseUrl = '159.89.96.65';
-    window.url = 'http://159.89.96.65';
+    window.baseUrl = 'rekrytor.fi';
+    window.url = 'https://rekrytor.fi';
     window.auth_token = '<?= $token ?>';
   </script>
 </body>
