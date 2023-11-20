@@ -79,8 +79,8 @@ return [
     ],
     'Websocket' => [
         'AdminToken' => 'aksljghaslkjyasfkuyasfuyasnbmo3j5sk912353nsx',
-        'baseUrl' => '159.89.96.65',
-        'url' => 'ws://159.89.96.65',
+        'baseUrl' => 'rekrytor.fi',
+        'url' => 'wss://rekrytor.fi',
         'port' => 8000
     ]
 ];

@@ -1,11 +1,16 @@
-const http = require('http');
+const https = require('https');
 const express = require('express');
 const WebSocket = require('ws');
 const fetch = require('node-fetch');
-const { type } = require('os');
 const app = express();
-const server = http.createServer(app);
-const ws = new WebSocket.Server({ server });
+const fs = require('fs');
+const privateKey = fs.readFileSync('/etc/letsencrypt/live/rekrytor.fi/privkey.pem', 'utf8');
+const certificate = fs.readFileSync('/etc/letsencrypt/live/rekrytor.fi/fullchain.pem', 'utf8');
+
+const credentials = { key: privateKey, cert: certificate };
+const httpsServer = https.createServer(credentials, app);
+const ws = new WebSocket.Server({ server: httpsServer });
+
 const moment = require('moment');
 require('moment-timezone');
 
@@ -13,14 +18,14 @@ var clients = [];
 var messages = [];
 
 ws.on('connection', (ws, req) => {
-    const url = new URL(req.url, `http://${req.headers.host}`);
+    const url = new URL(req.url, `https://${req.headers.host}`);
     const token = url.searchParams.get('token');
     if (!token) {
         console.log('Client tried to connect without token');
         return;
     } else {
         console.log('Getting user data...');
-        fetch(`http://${url.hostname}/api/users.json`, {
+        fetch(`https://rekrytor.fi/api/users.json`, {
             method: 'GET',
             headers: {
                 Authorization: 'Bearer ' + token
@@ -57,7 +62,7 @@ ws.on('connection', (ws, req) => {
     });
 });
 
-server.listen(8000, () => {
+httpsServer.listen(8000, () => {
     console.log('Server is listening on port 8000');
 });
 
