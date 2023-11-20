@@ -13,6 +13,8 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Cake\Core\Configure;
 use Firebase\JWT\Key;
+use Cake\Cache\Cache;
+
 class JwtAuthenticationMiddleware implements MiddlewareInterface
 {
     protected $unauthenticatedActions = [
@@ -41,7 +43,7 @@ class JwtAuthenticationMiddleware implements MiddlewareInterface
         // Get the JWT token from the Authorization header
         $token = $this->getTokenFromRequest($request);
         $request = $request->withAttribute('token', $token);
-        if ($token == Configure::read('Websocket.AdminToken')) {
+        if ($token == Cache::read('websocket_admin_token', 'default')) {
             return $handler->handle($request);
         }
         if (!$token) {

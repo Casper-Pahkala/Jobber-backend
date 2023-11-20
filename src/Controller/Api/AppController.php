@@ -9,6 +9,8 @@ use Cake\Core\Configure;
 use Firebase\JWT\Key;
 use App\Controller\FireBaseController;
 use Cake\Utility\Security;
+use Cake\Cache\Cache;
+
 class AppController extends Controller
 {
     protected $authenticatedUser = null;
@@ -33,7 +35,7 @@ class AppController extends Controller
             $this->authenticatedUser = $this->Users->findById($identity['id'])->first();
             // $this->set('authenticatedUser', $this->authenticatedUser);
         }
-        if ($token && $token == Configure::read('Websocket.AdminToken')) {
+        if ($token && $token == Cache::read('websocket_admin_token', 'default')) {
             $this->adminUser = true;
         }
     }

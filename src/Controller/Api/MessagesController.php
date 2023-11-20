@@ -4,6 +4,8 @@ use App\Controller\Api\AppController;
 use WebSocket\Client as WebSocketClient;
 use Cake\Core\Configure;
 use Cake\I18n\FrozenTime;
+use Cake\Cache\Cache;
+
 class MessagesController extends AppController
 {
     public function initialize(): void
@@ -255,7 +257,9 @@ class MessagesController extends AppController
         try {
             $url = Configure::read('Websocket.url');
             $port = Configure::read('Websocket.port');
-            $adminToken = Configure::read('Websocket.AdminToken');
+
+            $adminToken = bin2hex(random_bytes(16));
+            Cache::write('websocket_admin_token', $adminToken, 'default');
             $client = new WebSocketClient("$url:$port?token=$adminToken");
             $client->send(json_encode($data));
             return true;
