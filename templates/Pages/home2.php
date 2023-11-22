@@ -13,15 +13,16 @@ $this->disableAutoLayout();
   <meta charset="UTF-8" />
   <link rel="icon" href="/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Battleship</title>
-  <script type="module" crossorigin src="/ship_assets/index-482ad499.js"></script>
-  <link rel="stylesheet" href="/ship_assets/index-fa54c5da.css">
+  <title>Rekrytor</title>
+  <script type="module" crossorigin src="/assets/index-578f7d98.js"></script>
+  <link rel="stylesheet" href="/assets/index-4d5cb60e.css">
 </head>
 
 
 <body>
   <div id="app"></div>
   <script>
+    window.baseUrl = 'rekrytor.fi';
     window.url = 'https://rekrytor.fi';
     window.auth_token = '<?= $token ?>';
   </script>

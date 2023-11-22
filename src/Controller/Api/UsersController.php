@@ -250,12 +250,11 @@ class UsersController extends AppController
             $this->loadModel('Jobs');
             $userId = $this->authenticatedUser->id;
             $jobs = $this->Jobs->find()
-                // ->select([
-                //     'id',
-
-                // ])
                 ->where([
                     'user_id' => $userId,
+                ])
+                ->contain([
+                    'JobImages'
                 ])
                 ->order([
                     'Jobs.created_at'=> 'DESC'

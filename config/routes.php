@@ -48,7 +48,7 @@ return static function (RouteBuilder $routes) {
     $routes->setExtensions(['jpg']);
     $routes->scope('/', function (RouteBuilder $builder) {
         $builder->connect('/:page',['controller'=>'Pages','action'=>'home']); 
-        $builder->connect('/ship',['controller'=>'Pages','action'=>'battleShip']); 
+        // $builder->connect('/ship',['controller'=>'Pages','action'=>'battleShip']); 
         $builder->connect('/', ['controller' => 'Pages', 'action' => 'home']);
         $builder->connect('/*', ['controller' => 'Pages', 'action' => 'home']);
         $builder->connect('/job-image/:filename', ['controller' => 'App', 'action' => 'jobImage'], [
@@ -61,6 +61,7 @@ return static function (RouteBuilder $routes) {
             'userId' => '[A-Za-z0-9]+',
         ]);
         $builder->connect('/jobs/upload-image', ['controller' => 'Jobs', 'action' => 'uploadImage']);
+
         $builder->fallbacks();
     });
 

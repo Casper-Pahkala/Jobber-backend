@@ -57,6 +57,6 @@ class PagesController extends AppController
     }
 
     public function battleShip(string ...$path) {
-
+        // $this->viewBuilder()->setLayout('battle_ship'); 
     }
 }
