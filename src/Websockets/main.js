@@ -94,7 +94,9 @@ function handleClientMessage(ws, message) {
                             time: message.time,
                             id: message.id,
                             other_full_name: message.other_full_name,
-                            job_title: message.job_title
+                            job_title: message.job_title,
+                            attachment_id: message.attachment_id,
+                            attachment_name: message.attachment_name
                         }
                     };
                     if (receiverClients.length > 0) {

@@ -36,7 +36,6 @@ class MessagesTable extends Table
     public function initialize(array $config): void
     {
         parent::initialize($config);
-
         $this->setTable('messages');
         $this->setDisplayField('id');
         $this->setPrimaryKey('id');
@@ -84,12 +83,26 @@ class MessagesTable extends Table
             ->allowEmptyString('message');
 
         $validator
+            ->scalar('attachment_id')
+            ->maxLength('attachment_id', 255)
+            ->allowEmptyString('attachment_id');
+
+        $validator
+            ->scalar('attachment_name')
+            ->maxLength('attachment_name', 255)
+            ->allowEmptyString('attachment_name');
+
+        $validator
             ->dateTime('modified_at')
-            ->allowEmptyDateTime('modified_at');
+            ->notEmptyDateTime('modified_at');
 
         $validator
             ->dateTime('created_at')
-            ->allowEmptyDateTime('created_at');
+            ->notEmptyDateTime('created_at');
+
+        $validator
+            ->dateTime('seen')
+            ->allowEmptyDateTime('seen');
 
         return $validator;
     }
