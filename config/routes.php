@@ -60,6 +60,7 @@ return static function (RouteBuilder $routes) {
             'pass' => ['userId'],
             'userId' => '[A-Za-z0-9]+',
         ]);
+
         $builder->connect('/jobs/upload-image', ['controller' => 'Jobs', 'action' => 'uploadImage']);
 
         $builder->fallbacks();
@@ -68,7 +69,7 @@ return static function (RouteBuilder $routes) {
     $routes->prefix('api', function (\Cake\Routing\RouteBuilder $routes) {
         $routes->registerMiddleware('JwtAuthentication', new JwtAuthenticationMiddleware());
         $routes->applyMiddleware('JwtAuthentication');
-        $routes->setExtensions(['json']);
+        $routes->setExtensions(['json', 'jpg', 'svg', 'pdf', 'png']);
         // $routes->registerMiddleware('apiToken', new ApiTokenMiddleware());
         // $routes->applyMiddleware('apiToken');
         // $routes->connect('/:action', ['controller' => 'App'], ['pass' => ['action']]);
@@ -86,12 +87,18 @@ return static function (RouteBuilder $routes) {
         $routes->connect('/users/update-profile-image', ['controller' => 'Users', 'action' => 'updateProfileImage']);
         $routes->connect('/users/delete-user', ['controller' => 'Users', 'action' => 'deleteUser']);
         $routes->connect('/messages/*', ['controller' => 'Messages', 'action' => 'index']);
+        $routes->connect('/messages/send-attachment', ['controller' => 'Messages', 'action' => 'sendAttachment']);
         $routes->connect('/messages/:jobId/:userId', ['controller' => 'Messages', 'action' => 'index'], [
             'pass' => ['jobId', 'userId'],
             'jobId' => '[A-Za-z0-9]+',
             'userId' => '[A-Za-z0-9_]+'
         ]);
         $routes->connect('/messages/send-message', ['controller' => 'Messages', 'action' => 'sendMessage']);
+
+        $routes->connect('/attachment/:id', ['controller' => 'App', 'action' => 'attachment'], [
+            'pass' => ['id'],
+            'id' => '[A-Za-z0-9]+',
+        ]);
 
         $routes->connect('/jobs/upload-image', ['controller' => 'Jobs', 'action' => 'uploadImage']);
         $routes->connect('/jobs', ['controller' => 'Jobs', 'action' => 'getJobs']);

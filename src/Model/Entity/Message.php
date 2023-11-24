@@ -13,9 +13,13 @@ use Cake\ORM\Entity;
  * @property int|null $sender_id
  * @property int|null $receiver_id
  * @property string|null $message
- * @property \Cake\I18n\FrozenTime|null $modified_at
- * @property \Cake\I18n\FrozenTime|null $created_at
+ * @property string|null $attachment_id
+ * @property \Cake\I18n\FrozenTime $modified_at
+ * @property \Cake\I18n\FrozenTime $created_at
+ * @property \Cake\I18n\FrozenTime|null $seen
  *
+ * @property \App\Model\Entity\User $receiver
+ * @property \App\Model\Entity\User $sender
  * @property \App\Model\Entity\Job $job
  */
 class Message extends Entity
@@ -34,8 +38,13 @@ class Message extends Entity
         'sender_id' => true,
         'receiver_id' => true,
         'message' => true,
+        'attachment_id' => true,
+        'attachment_name' => true,
         'modified_at' => true,
         'created_at' => true,
+        'seen' => true,
+        'receiver' => true,
+        'sender' => true,
         'job' => true,
     ];
 }

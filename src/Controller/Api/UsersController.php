@@ -185,7 +185,9 @@ class UsersController extends AppController
                     'job_title' => 'Job.title',
                     'deleted' => 'Job.is_deleted',
                     'received' => "CASE WHEN Messages.sender_id = $userId THEN FALSE ELSE TRUE END",
-                    'seen'
+                    'seen',
+                    'attachment_id',
+                    'attachment_name'
                 ])
                 ->join([
                     'OtherUsers' => [

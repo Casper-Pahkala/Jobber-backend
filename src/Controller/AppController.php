@@ -21,6 +21,7 @@ use Cake\Core\Configure;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use App\Controller\FireBaseController;
+use Cake\Http\Exception\UnauthorizedException;
 
 /**
  * Application Controller
@@ -45,10 +46,14 @@ class AppController extends Controller
     {
         parent::initialize();
 
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: POST, GET, PUT, PATCH, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: *');
+
         $this->loadComponent('RequestHandler');
         $this->loadComponent('Flash');
         $this->loadComponent('Authentication.Authentication');
-        $this->Authentication->addUnauthenticatedActions(['login', 'jobImage', 'profileImage']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'jobImage', 'profileImage', 'attachment']);
 
         $user = $this->Authentication->getIdentity();
         $token = '';
@@ -160,7 +165,21 @@ class AppController extends Controller
             return $this->response;
         }
     }
-    
+
+
+
+    private function getExtensionFromMimeType($mimeType) {
+        switch ($mimeType) {
+            case 'image/jpeg':
+                return 'jpg';
+            case 'image/png':
+                return 'png';
+            case 'application/pdf':
+                return 'pdf';
+            default:
+                return '';
+        }
+    }
     
     
 }

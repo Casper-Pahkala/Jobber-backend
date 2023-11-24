@@ -22,12 +22,11 @@ class AppController extends Controller
         $this->loadComponent('RequestHandler');
         $this->loadComponent('Authentication.Authentication');
 
-
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: POST, GET, PUT, PATCH, DELETE, OPTIONS');
         header('Access-Control-Allow-Headers: *');
 
-        $this->Authentication->addUnauthenticatedActions(['getJobs', 'job', 'addJob', 'deleteListing']);
+        $this->Authentication->addUnauthenticatedActions(['getJobs', 'job', 'addJob', 'deleteListing', 'attachment']);
         $identity = $this->request->getAttribute('authUser');
         $token = $this->request->getAttribute('token');
         if ($identity) {
@@ -355,5 +354,52 @@ class AppController extends Controller
             return false;
         }
         return true;
+    }
+
+    public function attachment($id) {
+        if (!$this->authenticatedUser && !$this->request->is('options')) {
+            throw new UnauthorizedException(__('You are not authorized to access this resource.'));
+        }
+        if ($this->request->is('get')) {
+            $firebaseController = new FireBaseController();
+    
+            $this->loadModel('Messages');
+    
+            $userId = $this->authenticatedUser->id;
+            $message = $this->Messages->find()
+                ->where([
+                    'attachment_id' => $id,
+                    'attachment_name IS NOT NULL',
+                    'OR' => [
+                        'receiver_id' => $userId,
+                        'sender_id' => $userId
+                    ]
+                ])
+                ->first();
+    
+            if (!$message) {
+                // Handle the case where the message doesn't exist
+                throw new NotFoundException(__('Message not found'));
+            }
+    
+            $imageStream = $firebaseController->downloadImage("chat_attachments", $id);
+            if ($imageStream) {
+                $imageData = $imageStream->getContents();
+    
+                // Determine the file type and set the appropriate MIME type and extension
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->buffer($imageData);
+        
+                $response = $this->response->withBody(new \Cake\Http\CallbackStream(function () use ($imageData) {
+                    echo $imageData;
+                }));
+                header('Access-Control-Expose-Headers: Content-Type, Filename');
+    
+                return $response->withType($mimeType)->withHeader('Content-Disposition', 'attachment; filename="' . $message->attachment_name . '"')->withHeader('Filename', $message->attachment_name);
+            } else {
+                throw new InternalErrorException(__('Failed to download image'));
+            }
+        }
+        return $this->response;
     }
 }
