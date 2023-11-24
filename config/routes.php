@@ -73,7 +73,7 @@ return static function (RouteBuilder $routes) {
         // $routes->registerMiddleware('apiToken', new ApiTokenMiddleware());
         // $routes->applyMiddleware('apiToken');
         // $routes->connect('/:action', ['controller' => 'App'], ['pass' => ['action']]);
-
+        $routes->connect('/delete-listing', ['controller' => 'App', 'action' => 'deleteListing']);
         $routes->connect('/add-job', ['controller' => 'Jobs', 'action' => 'addJob']);
         $routes->connect('/job/:id', ['controller' => 'App', 'action' => 'job'], [
             'pass' => ['id'],
