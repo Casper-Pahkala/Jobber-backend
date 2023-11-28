@@ -15,7 +15,7 @@ class MessagesController extends AppController
         $this->Authentication->addUnauthenticatedActions(['sendMessage', 'getMessages', 'index', 'sendAttachment']);
     }
 
-    public function index($jobId, $otherUserId) {
+    public function index($jobId = null, $otherUserId = null) {
         $message = 'Invalid auth token';
         $status = 'error';
         $messages = [];
@@ -33,22 +33,25 @@ class MessagesController extends AppController
             $this->loadModel('Jobs');
             $this->loadModel('Users');
             $requestUserId = $this->authenticatedUser->id;
-
-            $otherUser = $this->Users->find()
-                ->where([
-                    'hashed_id' => $otherUserId
-                ])
-                ->first();
+            $otherUser = null;
+            if ($otherUserId) {
+                $otherUser = $this->Users->find()
+                    ->where([
+                        'hashed_id' => $otherUserId
+                    ])
+                    ->first();
+                
+                $user['id'] = $otherUser->hashed_id;
+                $user['name'] = $otherUser->first_name . ' ' . $otherUser->last_name;
+                $user['has_profile_image'] = $otherUser->profile_image != null;
+            }
             
-            if (empty($otherUser)) {
+            if ($otherUserId && empty($otherUser)) {
                 $message = 'No user found';
                 $this->set(compact('message', 'status'));
                 $this->set('_serialize', ['message', 'status']);
                 return;
             }
-            $user['id'] = $otherUser->hashed_id;
-            $user['name'] = $otherUser->first_name . ' ' . $otherUser->last_name;
-            $user['has_profile_image'] = $otherUser->profile_image != null;
             $messages = $this->Messages->find()
                 ->select([
                     'id',
@@ -82,20 +85,29 @@ class MessagesController extends AppController
                     'Job'
                 ])
                 ->where([
-                    'job_hashed_id'=> $jobId,
                     'OR' => [
                         'sender_id' => $requestUserId,
                         'receiver_id' => $requestUserId
                     ],
+                    'Job.id IS NOT NULL'
+                ]);
+
+            if ($jobId) {
+                $messages->where([
+                    'job_hashed_id'=> $jobId,
+                ]);
+            }
+            if ($otherUserId) {
+                $messages->where([
                     [
                         'OR' => [
                             'sender_id' => $otherUser->id,
                             'receiver_id' => $otherUser->id
                         ],
                     ]
-                ])
-                ->toArray();
-
+                ]);
+            }
+            $messages = $messages->toArray();
             $unSeenMessages = [];
             $now = new FrozenTime();
             $now->settimezone('Europe/Helsinki');
@@ -106,24 +118,22 @@ class MessagesController extends AppController
                 }
             }
             unset($message);
-
-            $job = $this->Jobs->find()
-                ->where([
-                    'Jobs.hashed_id' => $jobId
-                ])
-                ->contain([
-                    'Users',
-                    'JobImages' => [
-                        'fields' => [
-                            'job_hashed_id',
-                            'name'
+            if ($jobId) {
+                $job = $this->Jobs->find()
+                    ->where([
+                        'Jobs.hashed_id' => $jobId
+                    ])
+                    ->contain([
+                        'Users',
+                        'JobImages' => [
+                            'fields' => [
+                                'job_hashed_id',
+                                'name'
+                            ]
                         ]
-                    ]
-                    //  => function ($q) {
-                    //     return $q->find('WithHasImage'); // Use the findWithHasImage function to include 'has_image'
-                    // }
-                ])
-                ->first();
+                    ])
+                    ->first();
+            }
             if (!empty($unSeenMessages)) {
                 if($this->Messages->saveMany($unSeenMessages)) {
                     $status = 'success';
