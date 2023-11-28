@@ -112,7 +112,7 @@ class MessagesController extends AppController
             $now = new FrozenTime();
             $now->settimezone('Europe/Helsinki');
             foreach ($messages as &$message) {
-                if ($message['received'] && !$message['seen']) {
+                if ($message['received'] && !$message['seen'] && $jobId && $otherUserId) {
                     $message['seen'] = $now;
                     $unSeenMessages[] = $message;
                 }
@@ -155,7 +155,10 @@ class MessagesController extends AppController
                 'job_id' => $jobId,
                 'seen' => $now
             ];
-            $this->sendMessageToWebSocket($payload);
+
+            if ($jobId && $otherUserId) {
+                $this->sendMessageToWebSocket($payload);
+            }
         } else {
             $message = 'Invalid request type';
         }
