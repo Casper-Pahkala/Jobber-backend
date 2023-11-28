@@ -74,6 +74,7 @@ return static function (RouteBuilder $routes) {
         // $routes->applyMiddleware('apiToken');
         // $routes->connect('/:action', ['controller' => 'App'], ['pass' => ['action']]);
         $routes->connect('/delete-listing', ['controller' => 'App', 'action' => 'deleteListing']);
+        $routes->connect('/feedback', ['controller' => 'App', 'action' => 'sendFeedback']);
         $routes->connect('/add-job', ['controller' => 'Jobs', 'action' => 'addJob']);
         $routes->connect('/job/:id', ['controller' => 'App', 'action' => 'job'], [
             'pass' => ['id'],

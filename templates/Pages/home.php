@@ -14,31 +14,18 @@ $this->disableAutoLayout();
   <link rel="icon" href="/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rekrytor</title>
-
-  <style>
-    .coming-soon {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100vw;
-      height: 100vh;
-      font-size: 30px;
-      font-weight: 600;
-      font-family: 'Roboto';
-    }
-
-    body {
-      margin: 0;
-    }
-
-  </style>
+  <script type="module" crossorigin src="/assets/index-1e2fd370.js"></script>
+  <link rel="stylesheet" href="/assets/index-cb29091c.css">
 </head>
 
 
 <body>
-  <div class="coming-soon">
-    Tulossa pian
-  </div>
+  <div id="app"></div>
+  <script>
+    window.baseUrl = 'rekrytor.fi';
+    window.url = 'https://rekrytor.fi';
+    window.auth_token = '<?= $token ?>';
+  </script>
 </body>
 
 </html>

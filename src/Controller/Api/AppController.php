@@ -26,7 +26,7 @@ class AppController extends Controller
         header('Access-Control-Allow-Methods: POST, GET, PUT, PATCH, DELETE, OPTIONS');
         header('Access-Control-Allow-Headers: *');
 
-        $this->Authentication->addUnauthenticatedActions(['getJobs', 'job', 'addJob', 'deleteListing', 'attachment']);
+        $this->Authentication->addUnauthenticatedActions(['getJobs', 'job', 'addJob', 'deleteListing', 'attachment', 'sendFeedback']);
         $identity = $this->request->getAttribute('authUser');
         $token = $this->request->getAttribute('token');
         if ($identity) {
@@ -402,4 +402,38 @@ class AppController extends Controller
         }
         return $this->response;
     }
+
+    public function sendFeedback() {
+        $status = 'error';
+        $message = '';
+        if ($this->request->is('post')) {
+            $this->loadModel('Feedbacks');
+            
+            $data = $this->request->getData();
+
+            if (!$data['message']) {
+                $message = 'Data validation error';
+                $status = 'error';
+                $this->set(compact('message', 'status'));
+                $this->set('_serialize', ['message', 'status']);
+                return;
+            }
+
+            $feedback = $this->Feedbacks->newEntity([
+                'message' => trim($data['message'])
+            ]);
+            $savedFeedback = $this->Feedbacks->save($feedback);
+            if ($savedFeedback) {
+                $message = 'Saved feedback successfully';
+                $status = 'success';
+            } else {
+                $message = 'Saving feedback failed';
+                $status = 'error';
+            }
+        }
+
+        $this->set(compact('message', 'status'));
+        $this->set('_serialize', ['message', 'status']);
+    }
+
 }
