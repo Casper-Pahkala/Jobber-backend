@@ -14,8 +14,8 @@ $this->disableAutoLayout();
   <link rel="icon" href="/logo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rekrytor</title>
-  <script type="module" crossorigin src="/assets/index-73700b5c.js"></script>
-  <link rel="stylesheet" href="/assets/index-cb29091c.css">
+  <script type="module" crossorigin src="/assets/index-f078a329.js"></script>
+  <link rel="stylesheet" href="/assets/index-ec82ce76.css">
 </head>
 
 
