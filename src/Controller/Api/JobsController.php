@@ -50,10 +50,18 @@ class JobsController extends AppController
                 ])
                 ->count();
 
-            
+            $term = $this->request->getQuery('term');
             $page = $this->request->getQuery('page',1);
             $limit = $this->request->getQuery('limit',5);
-            // $jobs = $jobs->paginate($page, $limit);
+            if ($term) {
+                $term = trim($term);
+                if ($term != '') {
+                    $jobs->where([
+                        "Jobs.title LIKE" => "%$term%"
+                    ]);
+                }
+            }
+
             $jobs->limit($limit);
 
             $jobs->offset(($page - 1) * $limit);
