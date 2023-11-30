@@ -22,7 +22,7 @@ $this->disableAutoLayout();
 <body>
   <div id="app"></div>
   <script>
-    window.url = 'http://165.227.145.175';
+    window.url = 'https://rekrytor.fi';
     window.auth_token = '<?= $token ?>';
   </script>
 </body>
