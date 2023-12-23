@@ -78,8 +78,6 @@ class JobsTable extends Table
             ->notEmptyString('description');
 
         $validator
-            ->scalar('area')
-            ->maxLength('area', 255)
             ->allowEmptyString('area');
 
         $validator
@@ -87,7 +85,7 @@ class JobsTable extends Table
             ->allowEmptyString('contract_type');
 
         $validator
-            ->integer('hours')
+            ->numeric('hours')
             ->allowEmptyString('hours');
 
         $validator
@@ -138,5 +136,19 @@ class JobsTable extends Table
         $rules->add($rules->existsIn('user_id', 'Users'), ['errorField' => 'user_id']);
 
         return $rules;
+    }
+
+    public function afterFind($results, $primary = false)
+    {
+        dd(1);
+        foreach ($results as $key => $result) {
+            dd($result);
+            if (isset($result['area'])) {
+                // Convert the JSON column to an array
+                $results[$key]['area'] = json_decode($result['area'], true);
+            }
+        }
+
+        return $results;
     }
 }

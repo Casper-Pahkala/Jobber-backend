@@ -46,6 +46,11 @@ return static function (RouteBuilder $routes) {
      */
     $routes->setRouteClass(DashedRoute::class);
     $routes->setExtensions(['jpg']);
+
+    $routes->scope('/uno', function (RouteBuilder $builder) {
+        $builder->connect('/*', ['controller' => 'Uno', 'action' => 'index']);
+    });
+
     $routes->scope('/', function (RouteBuilder $builder) {
         $builder->connect('/:page',['controller'=>'Pages','action'=>'home']); 
         // $builder->connect('/ship',['controller'=>'Pages','action'=>'battleShip']); 

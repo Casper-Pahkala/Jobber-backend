@@ -1,0 +1,1 @@
+import{a3 as e,a4 as s,aa as o}from"./index-55751b84.js";const t={class:"container"},_=o("h1",null," Tulossa pian ",-1),a=[_],i={__name:"Workers",setup(n){return window.scrollTo(0,0),(c,r)=>(e(),s("div",t,a))}};export{i as default};

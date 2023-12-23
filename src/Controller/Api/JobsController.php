@@ -169,11 +169,10 @@ class JobsController extends AppController
                 $this->set('_serialize', ['message', 'status']);
                 return;
             }
-
             $saveData = [
                 'title' => $data['title'],
                 'description' => $data['description'],
-                'area' => $data['area'],
+                'area' => json_encode($data['area']),
                 'contract_type' => $data['contract_type'],
                 'hours' => $data['hours'],
                 'date' => isset($data['date']) && $data['date'] ? new FrozenTime($data['date']) : null,
