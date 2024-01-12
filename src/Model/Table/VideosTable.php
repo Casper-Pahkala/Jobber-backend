@@ -51,6 +51,11 @@ class VideosTable extends Table
     public function validationDefault(Validator $validator): Validator
     {
         $validator
+            ->scalar('name')
+            ->maxLength('name', 255)
+            ->allowEmptyString('name');
+
+        $validator
             ->scalar('url')
             ->maxLength('url', 255)
             ->requirePresence('url', 'create')

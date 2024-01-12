@@ -9,7 +9,7 @@ use Cake\ORM\Entity;
  * Video Entity
  *
  * @property int $id
- * @property string $name
+ * @property string|null $name
  * @property string $url
  * @property string $file_name
  * @property \Cake\I18n\FrozenTime|null $created_at
@@ -26,8 +26,8 @@ class Video extends Entity
      * @var array<string, bool>
      */
     protected $_accessible = [
-        'url' => true,
         'name' => true,
+        'url' => true,
         'file_name' => true,
         'created_at' => true,
     ];
