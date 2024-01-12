@@ -74,20 +74,42 @@ class UsersController extends AppController
     {
         $message = 'User registration failed. Please, try again.';
         $status = 'error';
+        $errorCode = null;
         $token = null;
         if ($this->request->is('post')) {
             $user = $this->Users->newEntity($this->request->getData());
-            $savedUser = $this->Users->save($user);
-            if ($savedUser) {
-                $message = 'User registered successfully.';
-                $status = 'success';
-
-                // $user = $this->Authentication->setIdentity($user);
-                // dd($savedUser);
-                $token = $this->addTokenCookie($savedUser);
+            if ($user->hasErrors()) {
+                $errors = $user->getErrors();
+                if (isset($errors['email'])) {
+                    foreach ($errors['email'] as $errorKey => $errorMessage) {
+                        if ($errorKey === 'unique') {
+                            // Email already in use
+                            $errorCode = 101;
+                            $message = 'User registration failed. Please, try again.';
+                            $status = 'error';
+                            break;
+                        } else {
+                            // Handle other email errors
+                            $errorCode = 102;
+                            $message = 'User registration failed. Please, try again.';
+                            $status = 'error';
+                            break;
+                        }
+                    }
+                }
             } else {
-                $message = 'User registration failed. Please, try again.';
-                $status = 'error';
+                $savedUser = $this->Users->save($user);
+                if ($savedUser) {
+                    $message = 'User registered successfully.';
+                    $status = 'success';
+    
+                    // $user = $this->Authentication->setIdentity($user);
+                    // dd($savedUser);
+                    $token = $this->addTokenCookie($savedUser);
+                } else {
+                    $message = 'User registration failed. Please, try again.';
+                    $status = 'error';
+                }
             }
         
         }
@@ -95,7 +117,8 @@ class UsersController extends AppController
             'token' => $token,
             'message' => $message,
             'status' => $status,
-            '_serialize' => ['message', 'status', 'token']
+            'errorCode' => $errorCode,
+            '_serialize' => ['message', 'status', 'token', 'errorCode']
         ]);
     }
 
@@ -417,6 +440,20 @@ class UsersController extends AppController
                     $message = 'Data validation error';
                     $status = 'error';
                 }
+            } else if ($data['type'] == 'password') {
+                if ($this->validatePasswordData($data)) {
+                    $this->authenticatedUser->password = trim($data['password']);
+                    if($this->Users->save($this->authenticatedUser)) {
+                        $message = 'Password update successful';
+                        $status = 'success';
+                    } else {
+                        $message = 'Error occurred when updating password';
+                        $status = 'error';
+                    }
+                } else {
+                    $message = 'Data validation error';
+                    $status = 'error';
+                }
             }
         }
         $this->set(compact('message', 'status'));
@@ -425,6 +462,13 @@ class UsersController extends AppController
 
     private function validateNameData($data) {
         if (!isset($data['first_name']) || trim($data['first_name']) == '' || !isset($data['last_name']) || trim($data['last_name']) == '') {
+            return false;
+        }
+        return true;
+    }
+
+    private function validatePasswordData($data) {
+        if (!isset($data['password']) || trim($data['password']) == '') {
             return false;
         }
         return true;

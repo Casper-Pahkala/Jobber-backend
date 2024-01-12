@@ -108,6 +108,10 @@ return static function (RouteBuilder $routes) {
 
         $routes->connect('/jobs/upload-image', ['controller' => 'Jobs', 'action' => 'uploadImage']);
         $routes->connect('/jobs', ['controller' => 'Jobs', 'action' => 'getJobs']);
+
+        $routes->connect('/pleijeri/get-videos', ['controller' => 'Pleijeri', 'action' => 'getVideos']);
+        $routes->connect('/pleijeri/add-video', ['controller' => 'Pleijeri', 'action' => 'addVideo']);
+        $routes->connect('/pleijeri/delete', ['controller' => 'Pleijeri', 'action' => 'delete']);
         $routes->fallbacks();
     });
 
