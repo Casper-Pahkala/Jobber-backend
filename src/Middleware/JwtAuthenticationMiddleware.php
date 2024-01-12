@@ -26,7 +26,9 @@ class JwtAuthenticationMiddleware implements MiddlewareInterface
         'autocompleteAddress',
         'uploadImage',
         'sendFeedback',
-        'getVideos'
+        'getVideos',
+        'addVideo',
+        'delete'
         // Add other action names that don't require authentication
     ];
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

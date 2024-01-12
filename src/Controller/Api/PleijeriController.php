@@ -19,8 +19,8 @@ class PleijeriController extends AppController
         if ($this->Videos->save($video)) {
             $message = 'success';
         }
-        $this->set(compact('message'));
-        $this->set('_serialize', ['message']);
+        $this->set(compact('video'));
+        $this->set('_serialize', ['video']);
     }
 
     public function getVideos() {
