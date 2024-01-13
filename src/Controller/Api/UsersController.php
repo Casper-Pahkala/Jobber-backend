@@ -19,7 +19,7 @@ class UsersController extends AppController
     public function initialize(): void
     {
         parent::initialize();
-        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit', 'recentMessages', 'logout']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit', 'recentMessages', 'logout', 'profile']);
     }
 
     public function index() {
@@ -571,5 +571,82 @@ class UsersController extends AppController
 
         $this->set(compact('message', 'status', 'messages'));
         $this->set('_serialize', ['message', 'status', 'messages']);
+    }
+
+    public function profile() {
+        $status = 'error';
+        $message = 'Invalid auth token';
+        if (!$this->authenticatedUser) {
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        if ($this->request->is('post')) {
+            $this->loadModel('Profiles');
+            $this->loadModel('ProfileJobs');
+            $this->loadModel('ProfileAreas');
+
+            $userId = $this->authenticatedUser->id;
+            $data = $this->request->getData();
+            $error = false;
+
+            $profile = $this->Profiles->find()
+                ->where([
+                    'user_id' => $userId
+                ])
+                ->first();
+            if ($profile) {
+                $profile = $this->Profiles->patchEntity($profile, $data['profile']);
+
+                $this->ProfileJobs->deleteAll(['profile_id' => $profile->id]);
+                $this->ProfileAreas->deleteAll(['profile_id' => $profile->id]);
+
+            } else {
+                $profileSaveData = $data['profile'];
+                $profileSaveData['user_id'] = $userId;
+                $profile = $this->Profiles->newEntity($profileSaveData);
+            }
+            if (!$this->Profiles->save($profile)) {
+                $status = 'error';
+                $message = 'Failed to save profile';
+                $error = true;
+            }
+            foreach ($data['jobs'] as $job) {
+                $jobSaveData = [
+                    'description' => $job,
+                    'profile_id' =>$profile->id
+                ];
+                $profileJob = $this->ProfileJobs->newEntity($jobSaveData);
+                if (!$this->ProfileJobs->save($profileJob)) {
+                    $status = 'error';
+                    $message = 'Failed to save profile job';
+                    $error = true;
+                }
+            }
+
+            foreach ($data['areas'] as $area) {
+                $areaSaveData = [
+                    'name' => $area,
+                    'profile_id' =>$profile->id
+                ];
+                $profileArea = $this->ProfileAreas->newEntity($areaSaveData);
+                if (!$this->ProfileAreas->save($profileArea)) {
+                    $status = 'error';
+                    $message = 'Failed to save profile area';
+                    $error = true;
+                }
+            }
+
+            if (!$error) {
+                $status = 'success';
+                $message = 'Profile saved succesfully';
+            }
+        } else {
+            $message = 'Invalid request type';
+        }
+
+        $this->set(compact('message', 'status'));
+        $this->set('_serialize', ['message', 'status']);
     }
 }
