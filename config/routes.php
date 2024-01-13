@@ -46,6 +46,11 @@ return static function (RouteBuilder $routes) {
      */
     $routes->setRouteClass(DashedRoute::class);
     $routes->setExtensions(['jpg']);
+
+    $routes->scope('/uno', function (RouteBuilder $builder) {
+        $builder->connect('/*', ['controller' => 'Uno', 'action' => 'index']);
+    });
+
     $routes->scope('/', function (RouteBuilder $builder) {
         $builder->connect('/:page',['controller'=>'Pages','action'=>'home']); 
         // $builder->connect('/ship',['controller'=>'Pages','action'=>'battleShip']); 
@@ -87,6 +92,7 @@ return static function (RouteBuilder $routes) {
         $routes->connect('/users/my-listings', ['controller' => 'Users', 'action' => 'myListings']);
         $routes->connect('/users/update-profile-image', ['controller' => 'Users', 'action' => 'updateProfileImage']);
         $routes->connect('/users/delete-user', ['controller' => 'Users', 'action' => 'deleteUser']);
+        $routes->connect('/users/profile', ['controller' => 'Users', 'action' => 'profile']);
         $routes->connect('/messages/*', ['controller' => 'Messages', 'action' => 'index']);
         $routes->connect('/messages/send-attachment', ['controller' => 'Messages', 'action' => 'sendAttachment']);
         $routes->connect('/messages/:jobId/:userId', ['controller' => 'Messages', 'action' => 'index'], [
@@ -103,6 +109,10 @@ return static function (RouteBuilder $routes) {
 
         $routes->connect('/jobs/upload-image', ['controller' => 'Jobs', 'action' => 'uploadImage']);
         $routes->connect('/jobs', ['controller' => 'Jobs', 'action' => 'getJobs']);
+
+        $routes->connect('/pleijeri/get-videos', ['controller' => 'Pleijeri', 'action' => 'getVideos']);
+        $routes->connect('/pleijeri/add-video', ['controller' => 'Pleijeri', 'action' => 'addVideo']);
+        $routes->connect('/pleijeri/delete', ['controller' => 'Pleijeri', 'action' => 'delete']);
         $routes->fallbacks();
     });
 

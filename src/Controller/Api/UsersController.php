@@ -19,7 +19,7 @@ class UsersController extends AppController
     public function initialize(): void
     {
         parent::initialize();
-        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit', 'recentMessages', 'logout']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit', 'recentMessages', 'logout', 'profile']);
     }
 
     public function index() {
@@ -74,20 +74,42 @@ class UsersController extends AppController
     {
         $message = 'User registration failed. Please, try again.';
         $status = 'error';
+        $errorCode = null;
         $token = null;
         if ($this->request->is('post')) {
             $user = $this->Users->newEntity($this->request->getData());
-            $savedUser = $this->Users->save($user);
-            if ($savedUser) {
-                $message = 'User registered successfully.';
-                $status = 'success';
-
-                // $user = $this->Authentication->setIdentity($user);
-                // dd($savedUser);
-                $token = $this->addTokenCookie($savedUser);
+            if ($user->hasErrors()) {
+                $errors = $user->getErrors();
+                if (isset($errors['email'])) {
+                    foreach ($errors['email'] as $errorKey => $errorMessage) {
+                        if ($errorKey === 'unique') {
+                            // Email already in use
+                            $errorCode = 101;
+                            $message = 'User registration failed. Please, try again.';
+                            $status = 'error';
+                            break;
+                        } else {
+                            // Handle other email errors
+                            $errorCode = 102;
+                            $message = 'User registration failed. Please, try again.';
+                            $status = 'error';
+                            break;
+                        }
+                    }
+                }
             } else {
-                $message = 'User registration failed. Please, try again.';
-                $status = 'error';
+                $savedUser = $this->Users->save($user);
+                if ($savedUser) {
+                    $message = 'User registered successfully.';
+                    $status = 'success';
+    
+                    // $user = $this->Authentication->setIdentity($user);
+                    // dd($savedUser);
+                    $token = $this->addTokenCookie($savedUser);
+                } else {
+                    $message = 'User registration failed. Please, try again.';
+                    $status = 'error';
+                }
             }
         
         }
@@ -95,7 +117,8 @@ class UsersController extends AppController
             'token' => $token,
             'message' => $message,
             'status' => $status,
-            '_serialize' => ['message', 'status', 'token']
+            'errorCode' => $errorCode,
+            '_serialize' => ['message', 'status', 'token', 'errorCode']
         ]);
     }
 
@@ -417,6 +440,20 @@ class UsersController extends AppController
                     $message = 'Data validation error';
                     $status = 'error';
                 }
+            } else if ($data['type'] == 'password') {
+                if ($this->validatePasswordData($data)) {
+                    $this->authenticatedUser->password = trim($data['password']);
+                    if($this->Users->save($this->authenticatedUser)) {
+                        $message = 'Password update successful';
+                        $status = 'success';
+                    } else {
+                        $message = 'Error occurred when updating password';
+                        $status = 'error';
+                    }
+                } else {
+                    $message = 'Data validation error';
+                    $status = 'error';
+                }
             }
         }
         $this->set(compact('message', 'status'));
@@ -425,6 +462,13 @@ class UsersController extends AppController
 
     private function validateNameData($data) {
         if (!isset($data['first_name']) || trim($data['first_name']) == '' || !isset($data['last_name']) || trim($data['last_name']) == '') {
+            return false;
+        }
+        return true;
+    }
+
+    private function validatePasswordData($data) {
+        if (!isset($data['password']) || trim($data['password']) == '') {
             return false;
         }
         return true;
@@ -527,5 +571,82 @@ class UsersController extends AppController
 
         $this->set(compact('message', 'status', 'messages'));
         $this->set('_serialize', ['message', 'status', 'messages']);
+    }
+
+    public function profile() {
+        $status = 'error';
+        $message = 'Invalid auth token';
+        if (!$this->authenticatedUser) {
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        if ($this->request->is('post')) {
+            $this->loadModel('Profiles');
+            $this->loadModel('ProfileJobs');
+            $this->loadModel('ProfileAreas');
+
+            $userId = $this->authenticatedUser->id;
+            $data = $this->request->getData();
+            $error = false;
+
+            $profile = $this->Profiles->find()
+                ->where([
+                    'user_id' => $userId
+                ])
+                ->first();
+            if ($profile) {
+                $profile = $this->Profiles->patchEntity($profile, $data['profile']);
+
+                $this->ProfileJobs->deleteAll(['profile_id' => $profile->id]);
+                $this->ProfileAreas->deleteAll(['profile_id' => $profile->id]);
+
+            } else {
+                $profileSaveData = $data['profile'];
+                $profileSaveData['user_id'] = $userId;
+                $profile = $this->Profiles->newEntity($profileSaveData);
+            }
+            if (!$this->Profiles->save($profile)) {
+                $status = 'error';
+                $message = 'Failed to save profile';
+                $error = true;
+            }
+            foreach ($data['jobs'] as $job) {
+                $jobSaveData = [
+                    'description' => $job,
+                    'profile_id' =>$profile->id
+                ];
+                $profileJob = $this->ProfileJobs->newEntity($jobSaveData);
+                if (!$this->ProfileJobs->save($profileJob)) {
+                    $status = 'error';
+                    $message = 'Failed to save profile job';
+                    $error = true;
+                }
+            }
+
+            foreach ($data['areas'] as $area) {
+                $areaSaveData = [
+                    'name' => $area,
+                    'profile_id' =>$profile->id
+                ];
+                $profileArea = $this->ProfileAreas->newEntity($areaSaveData);
+                if (!$this->ProfileAreas->save($profileArea)) {
+                    $status = 'error';
+                    $message = 'Failed to save profile area';
+                    $error = true;
+                }
+            }
+
+            if (!$error) {
+                $status = 'success';
+                $message = 'Profile saved succesfully';
+            }
+        } else {
+            $message = 'Invalid request type';
+        }
+
+        $this->set(compact('message', 'status'));
+        $this->set('_serialize', ['message', 'status']);
     }
 }

@@ -182,6 +182,7 @@ class MessagesController extends AppController
             $this->loadModel('Users');
 
             $data = $this->request->getData();
+            // dd(trim($data['message']));
             if (!$this->validateMessageData($data)) {
                 $message = 'Data validation error';
                 $this->set(compact('message', 'status'));

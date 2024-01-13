@@ -1,0 +1,1 @@
+import{T as e,a0 as s,X as o}from"./index-ea86fad6.js";const t={class:"container"},_=o("h1",null," Tulossa pian ",-1),n=[_],i={__name:"Workers",setup(a){return window.scrollTo(0,0),(c,r)=>(e(),s("div",t,n))}};export{i as default};
