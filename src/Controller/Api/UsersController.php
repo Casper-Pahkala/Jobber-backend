@@ -19,7 +19,7 @@ class UsersController extends AppController
     public function initialize(): void
     {
         parent::initialize();
-        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit', 'recentMessages', 'logout', 'profile']);
+        $this->Authentication->addUnauthenticatedActions(['login', 'register', 'index', 'myMessages', 'updateProfileImage', 'myListings', 'deleteUser', 'edit', 'recentMessages', 'logout', 'editProfile', 'myProfile']);
     }
 
     public function index() {
@@ -573,7 +573,7 @@ class UsersController extends AppController
         $this->set('_serialize', ['message', 'status', 'messages']);
     }
 
-    public function profile() {
+    public function editProfile() {
         $status = 'error';
         $message = 'Invalid auth token';
         if (!$this->authenticatedUser) {
@@ -648,5 +648,38 @@ class UsersController extends AppController
 
         $this->set(compact('message', 'status'));
         $this->set('_serialize', ['message', 'status']);
+    }
+
+
+    public function myProfile() {
+        $status = 'error';
+        $message = 'Invalid auth token';
+        $profile = null;
+        if (!$this->authenticatedUser) {
+            $this->set(compact('message', 'status'));
+            $this->set('_serialize', ['message', 'status']);
+            return;
+        }
+
+        if ($this->request->is('get')) {
+            $this->loadModel('Profiles');
+
+            $profile = $this->Profiles->find()
+                ->where([
+                    'user_id' => $this->authenticatedUser->id
+                ])
+                ->contain([
+                    'ProfileAreas',
+                    'ProfileJobs'
+                ])
+                ->first();
+            $status = 'success';
+            $message = 'Profile fetched';
+        } else {
+            $message = 'Invalid request type';
+        }
+
+        $this->set(compact('message', 'status', 'profile'));
+        $this->set('_serialize', ['message', 'status', 'profile']);
     }
 }
