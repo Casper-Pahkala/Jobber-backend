@@ -92,7 +92,8 @@ return static function (RouteBuilder $routes) {
         $routes->connect('/users/my-listings', ['controller' => 'Users', 'action' => 'myListings']);
         $routes->connect('/users/update-profile-image', ['controller' => 'Users', 'action' => 'updateProfileImage']);
         $routes->connect('/users/delete-user', ['controller' => 'Users', 'action' => 'deleteUser']);
-        $routes->connect('/users/profile', ['controller' => 'Users', 'action' => 'profile']);
+        $routes->connect('/users/profile', ['controller' => 'Users', 'action' => 'editProfile'])->setMethods(['POST']);
+        $routes->connect('/users/profile', ['controller' => 'Users', 'action' => 'myProfile'])->setMethods(['GET']);
         $routes->connect('/messages/*', ['controller' => 'Messages', 'action' => 'index']);
         $routes->connect('/messages/send-attachment', ['controller' => 'Messages', 'action' => 'sendAttachment']);
         $routes->connect('/messages/:jobId/:userId', ['controller' => 'Messages', 'action' => 'index'], [
